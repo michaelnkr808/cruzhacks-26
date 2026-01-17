@@ -1,6 +1,6 @@
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { getLessonById } from '../data/lessonData';
+import { getLessonById, lessons, markLessonComplete, isLessonCompleted } from '../data/lessonData';
 import './Lesson.css';
 
 /**
@@ -22,16 +22,19 @@ import './Lesson.css';
 function Lesson() {
   // Get the lesson ID from the URL
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const lessonId = parseInt(id || '1');
   
   // State for notes - React remembers this between re-renders
   const [notes, setNotes] = useState('');
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [completed, setCompleted] = useState(isLessonCompleted(lessonId));
   
   // Fetch the lesson data based on ID
   // parseInt() converts string "1" to number 1
-  const lessonData = getLessonById(parseInt(id || '1'));
+  const lessonData = getLessonById(lessonId);
   
-  // Load saved notes from localStorage when component mounts or ID changes
+  // Load saved notes and completion status when component mounts or ID changes
   useEffect(() => {
     const savedNotes = localStorage.getItem(`lesson-${id}-notes`);
     if (savedNotes) {
@@ -39,7 +42,8 @@ function Lesson() {
     } else {
       setNotes(''); // Clear notes if switching to a lesson with no saved notes
     }
-  }, [id]);
+    setCompleted(isLessonCompleted(lessonId));
+  }, [id, lessonId]);
   
   // Save notes to localStorage
   const saveNotes = () => {
@@ -51,6 +55,23 @@ function Lesson() {
       setSaveStatus('saved');
       setTimeout(() => setSaveStatus('idle'), 2000);
     }, 300);
+  };
+  
+  // Handle "Mark Complete & Next" button
+  const handleCompleteAndNext = () => {
+    // Mark lesson as complete
+    markLessonComplete(lessonId);
+    setCompleted(true);
+    
+    // Navigate to next lesson
+    const currentIndex = lessons.findIndex(l => l.id === lessonId);
+    if (currentIndex < lessons.length - 1) {
+      const nextLesson = lessons[currentIndex + 1];
+      navigate(`/lesson/${nextLesson.id}`);
+    } else {
+      // If last lesson, go back to learning page
+      navigate('/learning');
+    }
   };
   
   // Handle case where lesson doesn't exist (good error handling!)
@@ -155,26 +176,27 @@ function Lesson() {
               <p className="status-description">
                 Your hardware is ready! Follow along with the lesson and try the exercises.
               </p>
+              {completed && (
+                <div className="completion-badge">
+                  ✓ Lesson Completed!
+                </div>
+              )}
             </div>
 
             {/* Navigation buttons */}
             <div className="lesson-navigation">
               <button 
                 className="nav-btn" 
-                disabled={parseInt(id || '1') === 1}
-                onClick={() => window.location.href = `/lesson/${parseInt(id || '1') - 1}`}
+                disabled={lessonId === 1}
+                onClick={() => navigate(`/lesson/${lessonId - 1}`)}
               >
                 ← Previous Lesson
               </button>
               <button 
                 className="nav-btn primary"
-                onClick={() => {
-                  if (parseInt(id || '1') < 27) {
-                    window.location.href = `/lesson/${parseInt(id || '1') + 1}`;
-                  }
-                }}
+                onClick={handleCompleteAndNext}
               >
-                Mark Complete & Next →
+                {completed ? 'Next Lesson →' : 'Mark Complete & Next →'}
               </button>
             </div>
           </div>

@@ -132,33 +132,34 @@ export const lessons: Lesson[] = [
   {
     id: 3,
     title: "Button Module - Digital Input",
-    description: "Learn about digital inputs using the Button module. Understand pressed/released states and events.",
+    description: "A digital input module that detects whether a physical button is pressed or not.",
     duration: "20 min",
     status: 'available',
     category: 'sensor',
     module: 'Button',
     requiredLevel: 'beginner',
     content: {
-      overview: "The Button module is your introduction to digital input - understanding ON/OFF states.",
+      overview: "The Button module is a digital input that detects whether a physical button is pressed or not.",
       sections: [
         {
-          title: "Digital vs Analog",
-          text: "Digital signals have only two states: ON (1) or OFF (0). The Button module is digital - it's either pressed or not pressed. This is different from analog sensors like sliders that have a range of values."
+          title: "How It Works",
+          text: "A digital input module that detects whether a physical button is pressed or not. Range consists of 0 or 1. 1 (true) corresponds to the button pressed, while 0 (false) corresponds to the button not pressed. This module can be connected to any digital port and is commonly used to trigger events or control program flow."
         },
         {
-          title: "Reading Button State",
-          text: "When you press the button, The Device detects this change instantly. You can use this to trigger actions, like turning on a light or playing a sound. This is called 'event-driven programming'."
+          title: "Output Values",
+          text: "The button has two states: 0 (not pressed) and 1 (pressed). This binary output makes it perfect for simple on/off control and event triggering."
         },
         {
-          title: "Button Events",
-          text: "Buttons generate different events: Press (when pushed down), Release (when let go), Hold (pressed for duration). Each event can trigger different actions in your equations!"
+          title: "Code Example (JavaScript)",
+          text: "var buttonState = Magic.modules.button.state;",
+          codeExample: "var buttonState = Magic.modules.button.state;\n// Returns 0 (not pressed) or 1 (pressed)"
         },
         {
-          title: "Port Compatibility",
-          text: "The Button module can be used on ports 1-8, giving you flexibility in how you arrange your modules on The Device."
+          title: "Common Uses",
+          text: "Buttons are commonly used to: Trigger events when pressed, Control program flow (start/stop), Toggle states on and off, Create interactive user controls"
         }
       ],
-      practiceActivity: "Create an equation that lights up a Glow module when the button is pressed.",
+      practiceActivity: "Connect a Button module and create an equation that prints the button state to the console.",
       resources: [
         {
           title: "Button Module Documentation",
@@ -1060,22 +1061,26 @@ export const getLessonsByModule = (moduleName: string): Lesson[] => {
  */
 
 /**
- * Determine if user can access a lesson
- * Based on their skill level vs lesson's required level
- * 
+ * Check if user can access a lesson based on their level
  * Access hierarchy:
- * - Beginner: Can access beginner lessons only
- * - Intermediate: Can access beginner + intermediate lessons
- * - Advanced: Can access ALL lessons
+ * - Beginner: Can only access Beginner lessons
+ * - Intermediate: Can access Beginner AND Intermediate lessons
+ * - Advanced: Can access ALL lessons (Beginner, Intermediate, Advanced)
+ * 
+ * NOTE: Handles case-insensitive comparison
  */
 export const canAccessLesson = (userLevel: UserLevel, lesson: Lesson): boolean => {
-  const levelHierarchy: Record<UserLevel, number> = {
+  const levelHierarchy: Record<string, number> = {
     'beginner': 1,
     'intermediate': 2,
     'advanced': 3
   };
   
-  return levelHierarchy[userLevel] >= levelHierarchy[lesson.requiredLevel];
+  // Normalize to lowercase for comparison
+  const normalizedUserLevel = userLevel.toLowerCase();
+  const normalizedLessonLevel = lesson.requiredLevel.toLowerCase();
+  
+  return (levelHierarchy[normalizedUserLevel] || 0) >= (levelHierarchy[normalizedLessonLevel] || 0);
 };
 
 /**
@@ -1094,4 +1099,44 @@ export const getCurrentUser = (): { name: string; email: string; level: UserLeve
   const userStr = localStorage.getItem('hardwareHubUser');
   if (!userStr) return null;
   return JSON.parse(userStr);
+};
+
+/**
+ * LESSON PROGRESS TRACKING (localStorage-based)
+ * These functions track which lessons a user has completed
+ */
+
+/**
+ * Get completed lesson IDs for current user
+ */
+export const getCompletedLessons = (): number[] => {
+  const user = getCurrentUser();
+  if (!user) return [];
+  
+  const key = `completedLessons_${user.email}`;
+  const completed = localStorage.getItem(key);
+  return completed ? JSON.parse(completed) : [];
+};
+
+/**
+ * Mark a lesson as completed
+ */
+export const markLessonComplete = (lessonId: number): void => {
+  const user = getCurrentUser();
+  if (!user) return;
+  
+  const key = `completedLessons_${user.email}`;
+  const completed = getCompletedLessons();
+  
+  if (!completed.includes(lessonId)) {
+    completed.push(lessonId);
+    localStorage.setItem(key, JSON.stringify(completed));
+  }
+};
+
+/**
+ * Check if a specific lesson is completed
+ */
+export const isLessonCompleted = (lessonId: number): boolean => {
+  return getCompletedLessons().includes(lessonId);
 };

@@ -89,9 +89,10 @@
 
 .filter-btn:hover,
 .filter-btn.active {
-  background: rgba(0, 255, 135, 0.15);
+  background: rgba(0, 255, 135, 0.2);
   border-color: #00ff87;
-  box-shadow: 0 0 15px rgba(0, 255, 135, 0.3);
+  color: #00ff87;
+  box-shadow: 0 0 20px rgba(0, 255, 135, 0.4);
 }
 
 /* Notes Container */

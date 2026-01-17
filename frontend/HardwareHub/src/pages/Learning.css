@@ -16,6 +16,35 @@
   border: 1px solid rgba(0, 255, 135, 0.3);
 }
 
+/* Breadcrumb Navigation */
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  font-family: 'Courier New', monospace;
+}
+
+.breadcrumb-link {
+  color: #64ffda;
+  text-decoration: none;
+  transition: color 0.3s;
+  font-weight: 600;
+}
+
+.breadcrumb-link:hover {
+  color: #00ff87;
+}
+
+.breadcrumb-separator {
+  color: #8892b0;
+}
+
+.breadcrumb-current {
+  color: #00ff87;
+  font-weight: 700;
+}
+
 .header-top {
   display: flex;
   justify-content: space-between;

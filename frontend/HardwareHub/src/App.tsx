@@ -1,13 +1,13 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
 import Home from './pages/Home';
+import LearningPaths from './pages/LearningPaths';
 import Learning from './pages/Learning';
 import Lesson from './pages/Lesson';
 import Profile from './pages/Profile';
 import Signup from './pages/Signup';
 import Projects from './pages/Projects';
 import ProjectEditor from './pages/ProjectEditor';
-import About from './pages/About';
 import Notes from './pages/Notes';
 import './App.css';
 
@@ -22,19 +22,14 @@ import './App.css';
  * 
  * 2. Routes & Route: Define which component shows for each URL
  *    - "/" → Home page
- *    - "/learning" → Learning roadmap
+ *    - "/learning" → Learning path selection
+ *    - "/track/:pathId" → Learning track for a specific hardware platform
  *    - "/lesson/:id" → Individual lesson (":id" is a dynamic parameter)
  *    - "/profile" → User profile
  * 
  * 3. Layout: A wrapper component that shows on every page
  *    - Contains the header/navigation
  *    - Uses <Outlet /> to render child pages
- * 
- * Think of it like a book:
- * - BrowserRouter is the book cover that holds everything
- * - Layout is the consistent page template (headers, margins)
- * - Routes are the chapters
- * - Each Route is a specific page in that chapter
  */
 
 function App() {
@@ -52,8 +47,11 @@ function App() {
         {/* Index route - shows when path is exactly "/" */}
         <Route index element={<Home />} />
         
-        {/* Learning track page */}
-        <Route path="learning" element={<Learning />} />
+        {/* Learning path selection page */}
+        <Route path="learning" element={<LearningPaths />} />
+        
+        {/* Learning track for a specific platform */}
+        <Route path="track/:pathId" element={<Learning />} />
         
         {/* Individual lesson - :id is a parameter (1, 2, 3, etc.) */}
         <Route path="lesson/:id" element={<Lesson />} />
@@ -63,9 +61,6 @@ function App() {
         
         {/* Notes page */}
         <Route path="notes" element={<Notes />} />
-        
-        {/* About page */}
-        <Route path="about" element={<About />} />
         
         {/* Profile page */}
         <Route path="profile" element={<Profile />} />

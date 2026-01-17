@@ -39,7 +39,7 @@ function Layout() {
             </Link>
             <Link 
               to="/learning" 
-              className={`nav-link ${isActive('/learning') || location.pathname.startsWith('/lesson') ? 'active' : ''}`}
+              className={`nav-link ${isActive('/learning') || location.pathname.startsWith('/lesson') || location.pathname.startsWith('/track') ? 'active' : ''}`}
             >
               Learning
             </Link>
@@ -54,12 +54,6 @@ function Layout() {
               className={`nav-link ${isActive('/notes') ? 'active' : ''}`}
             >
               Notes
-            </Link>
-            <Link 
-              to="/about" 
-              className={`nav-link ${isActive('/about') ? 'active' : ''}`}
-            >
-              About
             </Link>
           </nav>
 

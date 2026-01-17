@@ -312,6 +312,31 @@
   line-height: 1.5;
 }
 
+.completion-badge {
+  margin-top: 1rem;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #00ff87 0%, #64ffda 100%);
+  color: #0a0e27;
+  border-radius: 8px;
+  font-weight: 700;
+  text-align: center;
+  font-family: 'Courier New', monospace;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  animation: pulseSuccess 2s infinite;
+}
+
+@keyframes pulseSuccess {
+  0%, 100% { 
+    transform: scale(1); 
+    box-shadow: 0 0 20px rgba(0, 255, 135, 0.4); 
+  }
+  50% { 
+    transform: scale(1.02); 
+    box-shadow: 0 0 30px rgba(0, 255, 135, 0.6); 
+  }
+}
+
 /* Lesson Navigation */
 .lesson-navigation {
   display: flex;

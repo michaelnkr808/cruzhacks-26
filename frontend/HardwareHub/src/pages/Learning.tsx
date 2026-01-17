@@ -1,10 +1,10 @@
-import { Link, useNavigate } from 'react-router-dom';
-import { lessons, getCurrentUser, canAccessLesson } from '../data/lessonData';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { lessons, getCurrentUser, canAccessLesson, getCompletedLessons } from '../data/lessonData';
 import { useEffect, useState } from 'react';
 import './Learning.css';
 
 /**
- * Learning Page - The roadmap/track view WITH ACCESS CONTROL
+ * Learning Track Page - The roadmap/track view for a specific hardware platform
  * 
  * KEY LEARNING CONCEPTS:
  * 
@@ -12,27 +12,30 @@ import './Learning.css';
  * 2. ACCESS CONTROL: Different users see different content
  * 3. User State: Reading from localStorage to determine permissions
  * 4. Progressive Disclosure: Show what's available vs locked
- * 
- * This demonstrates ROLE-BASED ACCESS CONTROL (RBAC)
- * - A security pattern used in real applications
- * - Users have roles (beginner/intermediate/advanced)
- * - Content has requirements (requiredLevel)
- * - System checks: does user role meet content requirement?
+ * 5. Path-Specific Content: Shows lessons for the selected hardware platform
  */
 
 function Learning() {
   const navigate = useNavigate();
+  const { pathId } = useParams<{ pathId: string }>();
   const [user, setUser] = useState(getCurrentUser());
+  const [completedLessons, setCompletedLessons] = useState<number[]>([]);
   
-  // Check if user is logged in, redirect to signup if not
+  // For now, only IF MAGIC has content. Other paths redirect back.
   useEffect(() => {
+    if (pathId && pathId !== 'ifmagic') {
+      navigate('/learning');
+      return;
+    }
+    
     const currentUser = getCurrentUser();
     if (!currentUser) {
       navigate('/signup');
     } else {
       setUser(currentUser);
+      setCompletedLessons(getCompletedLessons());
     }
-  }, [navigate]);
+  }, [navigate, pathId]);
   
   // If no user yet (during redirect), show loading
   if (!user) {
@@ -41,9 +44,9 @@ function Learning() {
   
   // Calculate progress stats from lesson data
   // This is "derived state" - calculating values from existing data
-  const completedCount = lessons.filter(l => l.status === 'completed').length;
+  const completedCount = completedLessons.length;
   const accessibleLessons = lessons.filter(l => canAccessLesson(user.level, l));
-  const availableCount = accessibleLessons.filter(l => l.status === 'available').length;
+  const availableCount = accessibleLessons.filter(l => !completedLessons.includes(l.id)).length;
   const totalCount = lessons.length;
   const progressPercent = (completedCount / totalCount) * 100;
 
@@ -74,6 +77,11 @@ function Learning() {
     <div className="learning">
       <div className="learning-header">
         <div className="header-top">
+          <div className="breadcrumb">
+            <Link to="/learning" className="breadcrumb-link">Learning Paths</Link>
+            <span className="breadcrumb-separator">▸</span>
+            <span className="breadcrumb-current">IF MAGIC Track</span>
+          </div>
           <h1 className="page-title">Your IF MAGIC Learning Journey</h1>
           <div className="user-level-badge" style={{ borderColor: levelBadge.color }}>
             <span className="level-emoji">{levelBadge.icon}</span>
@@ -113,26 +121,22 @@ function Learning() {
         <div className="lessons-track">
           {lessons.map((lesson, index) => {
             // Check if user can access this lesson
-            const hasAccess = canAccessLesson(user.level, lesson);
-            const isAccessLocked = !hasAccess;
+            const isAccessLocked = !canAccessLesson(user.level, lesson);
+            const isCompleted = completedLessons.includes(lesson.id);
             
             return (
               <div key={lesson.id} className="lesson-wrapper">
                 {/* Connection line between lessons */}
                 {index < lessons.length - 1 && (
-                  <div className={`connector ${lesson.status === 'completed' ? 'completed' : ''}`}></div>
+                  <div className={`connector ${isCompleted ? 'completed' : ''}`}></div>
                 )}
                 
                 {/* Lesson Card */}
-                {lesson.status === 'locked' || isAccessLocked ? (
-                  // Locked lessons or lessons without access aren't clickable
-                  <div className={`lesson-card ${lesson.status} ${isAccessLocked ? 'access-locked' : ''}`}>
+                {isAccessLocked ? (
+                  // Locked lessons aren't clickable
+                  <div className={`lesson-card locked access-locked`}>
                     <div className="lesson-status-badge">
-                      {isAccessLocked ? (
-                        <span className="lock-icon">⊗</span>
-                      ) : (
-                        <span className="lock-icon">○</span>
-                      )}
+                      <span className="lock-icon">⊗</span>
                     </div>
                     <div className="lesson-content">
                       <div className="lesson-header-row">
@@ -144,11 +148,9 @@ function Learning() {
                       </div>
                       <h3 className="lesson-title">{lesson.title}</h3>
                       <p className="lesson-description">{lesson.description}</p>
-                      {isAccessLocked && (
-                        <p className="access-message">
-                          ⊗ Requires {lesson.requiredLevel} level
-                        </p>
-                      )}
+                      <p className="access-message">
+                        ⊗ Requires {lesson.requiredLevel} level
+                      </p>
                       <div className="lesson-meta">
                         <span className="duration">◷ {lesson.duration}</span>
                         <span className="lesson-number">Lesson {lesson.id}</span>
@@ -157,9 +159,9 @@ function Learning() {
                   </div>
                 ) : (
                   // Available lessons are clickable links
-                  <Link to={`/lesson/${lesson.id}`} className={`lesson-card ${lesson.status}`}>
+                  <Link to={`/lesson/${lesson.id}`} className={`lesson-card ${isCompleted ? 'completed' : 'available'}`}>
                     <div className="lesson-status-badge">
-                      {lesson.status === 'completed' ? (
+                      {isCompleted ? (
                         <span className="check-icon">✓</span>
                       ) : (
                         <span className="play-icon">▶</span>

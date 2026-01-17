@@ -62,6 +62,7 @@ function ProjectEditor() {
   const [selectedModule, setSelectedModule] = useState<string | null>(null);
   const [draggingModule, setDraggingModule] = useState<string | null>(null);
   const [connectingFrom, setConnectingFrom] = useState<string | null>(null);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   
   // Load project
   useEffect(() => {
@@ -114,17 +115,53 @@ function ProjectEditor() {
     setSelectedModule(null);
   };
   
-  // Handle drag
-  const handleModuleDrag = (moduleId: string, e: React.DragEvent) => {
+  // Handle drag with mouse events (more reliable than drag events)
+  const handleMouseDown = (moduleId: string, e: React.MouseEvent) => {
     if (!canvasRef.current) return;
     
+    const module = modules.find(m => m.id === moduleId);
+    if (!module) return;
+    
     const rect = canvasRef.current.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    const scrollLeft = canvasRef.current.scrollLeft;
+    const scrollTop = canvasRef.current.scrollTop;
+    
+    // Calculate offset from module center
+    const moduleX = (module.x / 100) * 3000;
+    const moduleY = (module.y / 100) * 2000;
+    const clickX = e.clientX - rect.left + scrollLeft;
+    const clickY = e.clientY - rect.top + scrollTop;
+    
+    setDragOffset({
+      x: clickX - moduleX,
+      y: clickY - moduleY
+    });
+    setDraggingModule(moduleId);
+    e.preventDefault();
+  };
+  
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!draggingModule || !canvasRef.current) return;
+    
+    const rect = canvasRef.current.getBoundingClientRect();
+    const scrollLeft = canvasRef.current.scrollLeft;
+    const scrollTop = canvasRef.current.scrollTop;
+    
+    // Calculate new position
+    const x = ((e.clientX - rect.left + scrollLeft - dragOffset.x) / 3000) * 100;
+    const y = ((e.clientY - rect.top + scrollTop - dragOffset.y) / 2000) * 100;
     
     setModules(modules.map(m => 
-      m.id === moduleId ? { ...m, x: Math.max(0, Math.min(95, x)), y: Math.max(0, Math.min(95, y)) } : m
+      m.id === draggingModule ? { 
+        ...m, 
+        x: Math.max(1, Math.min(99, x)), 
+        y: Math.max(1, Math.min(99, y)) 
+      } : m
     ));
+  };
+  
+  const handleMouseUp = () => {
+    setDraggingModule(null);
   };
   
   // Start connecting
@@ -149,6 +186,7 @@ function ProjectEditor() {
           from: connectingFrom,
           to: toModuleId
         };
+        console.log('Creating connection:', newConnection); // Debug
         setConnections([...connections, newConnection]);
       }
     }
@@ -160,12 +198,13 @@ function ProjectEditor() {
     return connections.some(c => c.to === moduleId);
   };
   
-  // Get connection lines for SVG
+  // Get connection lines for SVG - use percentage coordinates
   const getConnectionLine = (connection: Connection) => {
     const fromModule = modules.find(m => m.id === connection.from);
     const toModule = modules.find(m => m.id === connection.to);
-    if (!fromModule || !toModule || !canvasRef.current) return null;
+    if (!fromModule || !toModule) return null;
     
+    // Return percentage-based coordinates (0-100)
     return {
       x1: fromModule.x,
       y1: fromModule.y,
@@ -271,20 +310,18 @@ function ProjectEditor() {
           <div 
             ref={canvasRef}
             className="canvas"
-            onDrop={(e) => {
-              e.preventDefault();
-              if (draggingModule) {
-                handleModuleDrag(draggingModule, e);
-                setDraggingModule(null);
-              }
-            }}
-            onDragOver={(e) => e.preventDefault()}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
           >
             {/* Connection lines */}
-            <svg className="connections-svg">
+            <svg className="connections-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
               {connections.map(conn => {
                 const line = getConnectionLine(conn);
                 if (!line) return null;
+                
+                console.log('Drawing connection:', conn.id, line); // Debug
+                
                 return (
                   <g key={conn.id}>
                     <line
@@ -293,17 +330,23 @@ function ProjectEditor() {
                       x2={`${line.x2}%`}
                       y2={`${line.y2}%`}
                       stroke="#00ff87"
-                      strokeWidth="3"
+                      strokeWidth="0.5"
+                      vectorEffect="non-scaling-stroke"
+                      strokeLinecap="round"
                       className="connection-line"
                     />
                     <circle
                       cx={`${(line.x1 + line.x2) / 2}%`}
                       cy={`${(line.y1 + line.y2) / 2}%`}
-                      r="8"
+                      r="1"
                       fill="#ff6b6b"
+                      vectorEffect="non-scaling-stroke"
                       className="connection-delete"
-                      onClick={() => deleteConnection(conn.id)}
-                      style={{ cursor: 'pointer' }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteConnection(conn.id);
+                      }}
+                      style={{ cursor: 'pointer', pointerEvents: 'all' }}
                     />
                   </g>
                 );
@@ -322,15 +365,11 @@ function ProjectEditor() {
                   key={module.id}
                   className={`canvas-module ${selectedModule === module.id ? 'selected' : ''} ${
                     module.moduleType === 'output' && !connected ? 'unconnected-output' : ''
-                  } ${connected ? 'connected-output' : ''}`}
+                  } ${connected ? 'connected-output' : ''} ${draggingModule === module.id ? 'dragging' : ''}`}
                   style={{ left: `${module.x}%`, top: `${module.y}%` }}
-                  draggable
-                  onDragStart={() => setDraggingModule(module.id)}
-                  onDrag={(e) => {
-                    if (e.clientX === 0 && e.clientY === 0) return;
-                    handleModuleDrag(module.id, e);
-                  }}
-                  onClick={() => {
+                  onMouseDown={(e) => handleMouseDown(module.id, e)}
+                  onClick={(e) => {
+                    e.stopPropagation();
                     if (connectingFrom && module.moduleType === 'output') {
                       completeConnection(module.id);
                     } else {
