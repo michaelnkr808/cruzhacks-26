@@ -6,6 +6,7 @@ import Learning from './pages/Learning';
 import Lesson from './pages/Lesson';
 import Profile from './pages/Profile';
 import Signup from './pages/Signup';
+import Login from './pages/Login';
 import Projects from './pages/Projects';
 import ProjectEditor from './pages/ProjectEditor';
 import Notes from './pages/Notes';
@@ -36,37 +37,40 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-      {/* Signup page - outside Layout (full screen) */}
-      <Route path="/signup" element={<Signup />} />
-      
-      {/* Project Editor - outside Layout (full screen editor) */}
-      <Route path="/project-editor/:id" element={<ProjectEditor />} />
-      
-      {/* All other routes wrapped in Layout to get consistent header */}
-      <Route path="/" element={<Layout />}>
-        {/* Index route - shows when path is exactly "/" */}
-        <Route index element={<Home />} />
-        
-        {/* Learning path selection page */}
-        <Route path="learning" element={<LearningPaths />} />
-        
-        {/* Learning track for a specific platform */}
-        <Route path="track/:pathId" element={<Learning />} />
-        
-        {/* Individual lesson - :id is a parameter (1, 2, 3, etc.) */}
-        <Route path="lesson/:id" element={<Lesson />} />
-        
-        {/* Projects page */}
-        <Route path="projects" element={<Projects />} />
-        
-        {/* Notes page */}
-        <Route path="notes" element={<Notes />} />
-        
-        {/* Profile page */}
-        <Route path="profile" element={<Profile />} />
-      </Route>
-    </Routes>
-  </BrowserRouter>
+        {/* Signup page - outside Layout (full screen) */}
+        <Route path="/signup" element={<Signup />} />
+
+        {/* Login page - outside Layout (full screen) */}
+        <Route path="/login" element={<Login />} />
+
+        {/* Project Editor - outside Layout (full screen editor) */}
+        <Route path="/project-editor/:id" element={<ProjectEditor />} />
+
+        {/* All other routes wrapped in Layout to get consistent header */}
+        <Route path="/" element={<Layout />}>
+          {/* Index route - shows when path is exactly "/" */}
+          <Route index element={<Home />} />
+
+          {/* Learning path selection page */}
+          <Route path="learning" element={<LearningPaths />} />
+
+          {/* Learning track for a specific platform */}
+          <Route path="track/:pathId" element={<Learning />} />
+
+          {/* Individual lesson - :id is a parameter (1, 2, 3, etc.) */}
+          <Route path="lesson/:id" element={<Lesson />} />
+
+          {/* Projects page */}
+          <Route path="projects" element={<Projects />} />
+
+          {/* Notes page */}
+          <Route path="notes" element={<Notes />} />
+
+          {/* Profile page */}
+          <Route path="profile" element={<Profile />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
   );
 }
 

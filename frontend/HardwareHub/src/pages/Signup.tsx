@@ -37,7 +37,7 @@ export type UserLevel = 'beginner' | 'intermediate' | 'advanced';
 function Signup() {
   // useNavigate hook for redirecting after signup
   const navigate = useNavigate();
-  
+
   // Form state - stores all form field values
   // This is a common pattern: one state object for all form data
   const [formData, setFormData] = useState<FormData>({
@@ -49,13 +49,13 @@ function Signup() {
     hasProgrammingExperience: '',
     motivationLevel: ''
   });
-  
+
   // Error state for validation messages
   const [error, setError] = useState('');
-  
+
   // Loading state for submission
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   /**
    * Handle input changes
    * This is called every time a user types or selects something
@@ -70,7 +70,7 @@ function Signup() {
       [name]: value
     }));
   };
-  
+
   /**
    * Classification Algorithm
    * 
@@ -84,23 +84,23 @@ function Signup() {
    */
   const determineUserLevel = (): UserLevel => {
     const { hasEmbeddedExperience, hasHardwareExperience, hasProgrammingExperience } = formData;
-    
+
     // Advanced: Has both embedded and hardware experience
     if (hasEmbeddedExperience === 'yes' && hasHardwareExperience === 'yes') {
       return 'advanced';
     }
-    
+
     // Intermediate: Has programming experience or some hardware knowledge
-    if (hasProgrammingExperience === 'proficient' || 
-        hasProgrammingExperience === 'expert' ||
-        hasHardwareExperience === 'yes') {
+    if (hasProgrammingExperience === 'proficient' ||
+      hasProgrammingExperience === 'expert' ||
+      hasHardwareExperience === 'yes') {
       return 'intermediate';
     }
-    
+
     // Beginner: New to most of this
     return 'beginner';
   };
-  
+
   /**
    * Validate form data
    * Check that all required fields are filled
@@ -111,81 +111,95 @@ function Signup() {
       setError('Please fill in all account fields');
       return false;
     }
-    
-    if (!formData.hasEmbeddedExperience || !formData.hasHardwareExperience || 
-        !formData.hasProgrammingExperience || !formData.motivationLevel) {
+
+    if (!formData.hasEmbeddedExperience || !formData.hasHardwareExperience ||
+      !formData.hasProgrammingExperience || !formData.motivationLevel) {
       setError('Please answer all survey questions');
       return false;
     }
-    
+
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
       setError('Please enter a valid email address');
       return false;
     }
-    
+
     // Password length check
     if (formData.password.length < 6) {
       setError('Password must be at least 6 characters');
       return false;
     }
-    
+
     return true;
   };
-  
+
   /**
    * Handle form submission
    * 
-   * In a real app, this would:
-   * 1. Send data to a backend API
-   * 2. Create user account in database
-   * 3. Return authentication token
-   * 
-   * For now, we're using localStorage (browser storage)
-   * to simulate user accounts. Good for prototypes!
+   * Now using backend API for proper authentication:
+   * 1. Send data to backend API
+   * 2. Backend creates user account in database with hashed password
+   * 3. Backend returns user data
+   * 4. Store user data in localStorage for session management
    */
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); // Prevent page reload
     setError(''); // Clear previous errors
-    
+
     // Validate before submitting
     if (!validateForm()) {
       return;
     }
-    
+
     setIsSubmitting(true);
-    
-    // Determine user level from survey
-    const userLevel = determineUserLevel();
-    
-    // Create user object
-    const user = {
-      name: formData.name,
-      email: formData.email,
-      level: userLevel,
-      joinDate: new Date().toISOString(),
-      completedLessons: [],
-      surveyResponses: {
-        hasEmbeddedExperience: formData.hasEmbeddedExperience,
-        hasHardwareExperience: formData.hasHardwareExperience,
-        hasProgrammingExperience: formData.hasProgrammingExperience,
-        motivationLevel: formData.motivationLevel
+
+    try {
+      // Determine user level from survey
+      const userLevel = determineUserLevel();
+
+      // Call backend API to create user
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const response = await fetch(`${API_URL}/api/auth/signup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+          name: formData.name,
+          level: userLevel,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create account');
       }
-    };
-    
-    // Save to localStorage
-    // localStorage is browser storage that persists between sessions
-    localStorage.setItem('hardwareHubUser', JSON.stringify(user));
-    
-    // Simulate network delay (remove in production)
-    setTimeout(() => {
-      setIsSubmitting(false);
+
+      // Store user data in localStorage for session management
+      const userSession = {
+        ...data.user,
+        surveyResponses: {
+          hasEmbeddedExperience: formData.hasEmbeddedExperience,
+          hasHardwareExperience: formData.hasHardwareExperience,
+          hasProgrammingExperience: formData.hasProgrammingExperience,
+          motivationLevel: formData.motivationLevel
+        }
+      };
+      localStorage.setItem('hardwareHubUser', JSON.stringify(userSession));
+
       // Redirect to learning page
       navigate('/learning');
-    }, 1000);
+    } catch (error: any) {
+      setError(error.message || 'Failed to create account. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
-  
+
   return (
     <div className="signup-page">
       <div className="signup-container">
@@ -193,12 +207,12 @@ function Signup() {
           <h1>Join HardwareHub</h1>
           <p>Start your embedded programming journey today!</p>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="signup-form">
           {/* Account Information Section */}
           <div className="form-section">
             <h2>Account Information</h2>
-            
+
             <div className="form-group">
               <label htmlFor="name">Full Name</label>
               <input
@@ -211,7 +225,7 @@ function Signup() {
                 required
               />
             </div>
-            
+
             <div className="form-group">
               <label htmlFor="email">Email Address</label>
               <input
@@ -224,7 +238,7 @@ function Signup() {
                 required
               />
             </div>
-            
+
             <div className="form-group">
               <label htmlFor="password">Password</label>
               <input
@@ -238,7 +252,7 @@ function Signup() {
               />
             </div>
           </div>
-          
+
           {/* Experience Survey Section */}
           <div className="form-section survey-section">
             <h2>▣ Quick Experience Survey</h2>
@@ -246,7 +260,7 @@ function Signup() {
               Help us personalize your learning experience by answering a few questions.
               This will determine which modules you can access.
             </p>
-            
+
             <div className="form-group">
               <label>
                 Have you worked with embedded systems before?
@@ -270,7 +284,7 @@ function Signup() {
                 </button>
               </div>
             </div>
-            
+
             <div className="form-group">
               <label>
                 Have you worked with physical hardware (Arduino, Raspberry Pi, etc.)?
@@ -302,7 +316,7 @@ function Signup() {
                 </button>
               </div>
             </div>
-            
+
             <div className="form-group">
               <label>
                 How would you rate your programming experience?
@@ -342,7 +356,7 @@ function Signup() {
                 </button>
               </div>
             </div>
-            
+
             <div className="form-group">
               <label>
                 What's your main goal with HardwareHub?
@@ -383,23 +397,23 @@ function Signup() {
               </div>
             </div>
           </div>
-          
+
           {/* Error Message */}
           {error && (
             <div className="error-message">
               ⚠ {error}
             </div>
           )}
-          
+
           {/* Submit Button */}
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             className="submit-button"
             disabled={isSubmitting}
           >
             {isSubmitting ? 'Creating Account...' : 'Create Account & Start Learning'}
           </button>
-          
+
           <p className="login-link">
             Already have an account? <a href="/login">Log in</a>
           </p>

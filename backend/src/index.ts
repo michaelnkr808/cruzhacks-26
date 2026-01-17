@@ -25,7 +25,7 @@ app.use('*', cors({
 
 // Health check
 app.get('/', (c) => {
-  return c.json({ 
+  return c.json({
     message: 'EmbedPath API is running! 🚀',
     status: 'healthy',
     version: '1.0.0',
@@ -48,7 +48,7 @@ app.notFound((c) => {
 // Error handler
 app.onError((err, c) => {
   console.error(`Error: ${err.message}`);
-  return c.json({ 
+  return c.json({
     error: err.message,
     stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
   }, 500);
