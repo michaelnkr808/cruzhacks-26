@@ -1,68 +1,143 @@
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+@import "tailwindcss";
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+/* Global CSS Reset and Base Styles - Hacker Theme with Tailwind */
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
-body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
-}
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
-
-@media (prefers-color-scheme: light) {
+@layer base {
   :root {
-    color: #213547;
-    background-color: #ffffff;
+    /* Dark Hacker Theme */
+    --bg-primary: #0a0e27;
+    --bg-secondary: #16213e;
+    --bg-tertiary: #0f3460;
+    --accent-green: #00ff87;
+    --accent-cyan: #64ffda;
+    --accent-blue: #00d9ff;
+    --text-primary: #e6f1ff;
+    --text-secondary: #8892b0;
+    --text-muted: #4a5f7a;
+    --error-red: #ff6b6b;
+    --card-bg: rgba(10, 14, 39, 0.95);
+    --card-border: rgba(0, 255, 135, 0.3);
+    --card-shadow: 0 0 20px rgba(0, 255, 135, 0.2);
+    --card-hover-bg: rgba(0, 255, 135, 0.1);
+    --card-hover-border: #00ff87;
+    --card-hover-shadow: 0 0 30px rgba(0, 255, 135, 0.4);
   }
-  a:hover {
-    color: #747bff;
+
+  body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    transition: background 0.5s ease, color 0.5s ease;
+    position: relative;
+    overflow-x: hidden; /* Prevent horizontal scroll from animations */
   }
-  button {
-    background-color: #f9f9f9;
+
+  /* Animated background layers */
+  body::before, body::after, .animated-particles {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: -1; /* Ensure animations are behind content */
+  }
+
+  /* Scanning lines (Layer 1) */
+  body::before {
+    background: 
+      linear-gradient(to right, transparent, var(--accent-green), transparent),
+      linear-gradient(to bottom, transparent, var(--accent-green), transparent);
+    background-size: 100% 2px, 2px 100%;
+    animation: scanLine 8s linear infinite;
+    opacity: 0.05;
+  }
+
+  @keyframes scanLine {
+    0% { background-position: 0% 0%, 0% 0%; }
+    100% { background-position: 100% 100%, 100% 100%; }
+  }
+
+  /* Moving grid (Layer 2) */
+  body::after {
+    background-image: 
+      linear-gradient(to right, rgba(0, 255, 135, 0.03) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(0, 255, 135, 0.03) 1px, transparent 1px);
+    background-size: 50px 50px;
+    animation: gridMove 20s linear infinite;
+    opacity: 0.1;
+  }
+
+  @keyframes gridMove {
+    0% { background-position: 0 0; }
+    100% { background-position: 50px 50px; }
+  }
+
+  /* Floating particles (Layer 3) */
+  .animated-particles {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    z-index: -2;
+  }
+
+  .particle {
+    position: absolute;
+    background: var(--accent-green);
+    border-radius: 50%;
+    opacity: 0;
+    animation: particleFloat 15s infinite ease-in-out;
+  }
+
+  .particle:nth-child(2n) {
+    background: var(--accent-cyan);
+    animation-duration: 20s;
+    animation-delay: 2s;
+    width: 4px;
+    height: 4px;
+  }
+
+  .particle:nth-child(3n) {
+    background: var(--accent-blue);
+    animation-duration: 10s;
+    animation-delay: 5s;
+    width: 6px;
+    height: 6px;
+  }
+
+  @keyframes particleFloat {
+    0% { transform: translate(0, 100vh) scale(0); opacity: 0; }
+    20% { opacity: 0.5; }
+    80% { opacity: 0.5; }
+    100% { transform: translate(100vw, -100vh) scale(1); opacity: 0; }
+  }
+
+  /* Custom scrollbar for hacker theme */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--bg-primary);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--accent-green);
+    border-radius: 5px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-cyan);
+  }
+
+  /* Selection color */
+  ::selection {
+    background: var(--accent-green);
+    color: var(--text-primary);
   }
 }

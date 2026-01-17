@@ -1,0 +1,206 @@
+/* Layout Styles - Hacker Theme */
+
+.layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header Styles */
+.header {
+  background: var(--card-bg);
+  backdrop-filter: blur(10px);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  border-bottom: 1px solid var(--card-border);
+  transition: all 0.3s ease;
+  box-shadow: 
+    0 2px 20px rgba(0, 255, 135, 0.2),
+    0 0 40px rgba(0, 0, 0, 0.3),
+    inset 0 -1px 0 rgba(0, 255, 135, 0.3);
+}
+
+.header-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Logo Styles */
+.header-left .logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  color: var(--accent-green);
+  font-size: 1.5rem;
+  font-weight: 700;
+  transition: all 0.3s;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 2px;
+  text-shadow: 0 0 20px rgba(0, 255, 135, 0.5);
+}
+
+.header-left .logo:hover {
+  transform: scale(1.05);
+  text-shadow: 0 0 30px rgba(0, 255, 135, 0.8);
+  animation: glitch 0.3s;
+}
+
+@keyframes glitch {
+  0% { transform: translate(0) scale(1.05); }
+  20% { transform: translate(-2px, 2px) scale(1.05); }
+  40% { transform: translate(-2px, -2px) scale(1.05); }
+  60% { transform: translate(2px, 2px) scale(1.05); }
+  80% { transform: translate(2px, -2px) scale(1.05); }
+  100% { transform: translate(0) scale(1.05); }
+}
+
+.logo-icon {
+  font-size: 2rem;
+  filter: drop-shadow(0 0 10px var(--accent-green));
+  transition: filter 0.3s;
+}
+
+.logo-text {
+  background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-cyan) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Navigation Styles */
+.nav-center {
+  display: flex;
+  gap: 2rem;
+}
+
+.nav-link {
+  text-decoration: none;
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 1.1rem;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  transition: all 0.3s;
+  position: relative;
+  font-family: 'Courier New', monospace;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border: 1px solid transparent;
+}
+
+.nav-link::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background: var(--accent-green);
+  transform: translateX(-50%);
+  transition: width 0.3s;
+  box-shadow: 0 0 10px var(--accent-green);
+}
+
+.nav-link:hover {
+  color: var(--accent-green);
+  border-color: rgba(0, 255, 135, 0.3);
+  background: rgba(0, 255, 135, 0.05);
+  text-shadow: 0 0 10px rgba(0, 255, 135, 0.5);
+}
+
+.nav-link:hover::before {
+  width: 100%;
+}
+
+.nav-link.active {
+  color: var(--accent-green);
+  background: rgba(0, 255, 135, 0.1);
+  border-color: rgba(0, 255, 135, 0.5);
+  box-shadow: 
+    0 0 20px rgba(0, 255, 135, 0.2),
+    inset 0 0 20px rgba(0, 255, 135, 0.1);
+}
+
+/* Profile Button */
+.profile-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  color: var(--text-secondary);
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  transition: all 0.3s;
+  border: 2px solid var(--card-border);
+  font-family: 'Courier New', monospace;
+  background: var(--card-bg);
+}
+
+.profile-button:hover {
+  background: rgba(0, 255, 135, 0.1);
+  border-color: var(--accent-green);
+  color: var(--accent-green);
+  transform: translateY(-2px);
+  box-shadow: 0 0 20px rgba(0, 255, 135, 0.3);
+}
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-cyan) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  border: 3px solid rgba(0, 255, 135, 0.5);
+  transition: all 0.3s;
+  box-shadow: 0 0 15px rgba(0, 255, 135, 0.5);
+}
+
+.profile-text {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Main Content Area */
+.main-content {
+  flex: 1;
+  max-width: 1400px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 2rem;
+  position: relative;
+  z-index: 1;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .header-content {
+    padding: 1rem;
+  }
+  
+  .nav-center {
+    gap: 1rem;
+  }
+  
+  .nav-link {
+    font-size: 0.9rem;
+    padding: 0.4rem 0.8rem;
+  }
+  
+  .profile-text {
+    display: none;
+  }
+  
+  .main-content {
+    padding: 1rem;
+  }
+}

@@ -1,0 +1,387 @@
+/* Learning Page - Hacker Theme */
+
+.learning {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.learning-header {
+  background: rgba(10, 14, 39, 0.9);
+  padding: 2rem;
+  border-radius: 20px;
+  box-shadow: 
+    0 0 40px rgba(0, 255, 135, 0.2),
+    inset 0 0 30px rgba(0, 255, 135, 0.05);
+  border: 1px solid rgba(0, 255, 135, 0.3);
+}
+
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.user-level-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: rgba(0, 255, 135, 0.1);
+  border: 3px solid;
+  border-radius: 25px;
+  font-weight: 700;
+  font-size: 1.1rem;
+  box-shadow: 0 0 20px rgba(0, 255, 135, 0.3);
+  font-family: 'Courier New', monospace;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.level-emoji {
+  font-size: 1.5rem;
+  filter: drop-shadow(0 0 5px currentColor);
+}
+
+.page-title {
+  font-size: 2.5rem;
+  color: #00ff87;
+  margin: 0;
+  font-family: 'Courier New', monospace;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  text-shadow: 0 0 20px rgba(0, 255, 135, 0.5);
+}
+
+.page-subtitle {
+  font-size: 1.2rem;
+  color: #8892b0;
+  margin: 0 0 2rem 0;
+  font-family: 'Courier New', monospace;
+}
+
+/* Progress Section */
+.progress-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.progress-stats {
+  display: flex;
+  gap: 2rem;
+  justify-content: center;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.stat-number {
+  font-size: 2rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #00ff87 0%, #64ffda 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-family: 'Courier New', monospace;
+  filter: drop-shadow(0 0 10px rgba(0, 255, 135, 0.5));
+}
+
+.stat-label {
+  font-size: 0.9rem;
+  color: #8892b0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-family: 'Courier New', monospace;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 10px;
+  background: rgba(0, 255, 135, 0.1);
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 255, 135, 0.3);
+  box-shadow: inset 0 0 10px rgba(0, 255, 135, 0.2);
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #00ff87 0%, #64ffda 100%);
+  border-radius: 10px;
+  transition: width 0.5s ease;
+  box-shadow: 0 0 15px rgba(0, 255, 135, 0.8);
+}
+
+/* Lessons Track */
+.lessons-container {
+  background: rgba(10, 14, 39, 0.9);
+  padding: 2rem;
+  border-radius: 20px;
+  box-shadow: 
+    0 0 40px rgba(0, 255, 135, 0.2),
+    inset 0 0 30px rgba(0, 255, 135, 0.05);
+  border: 1px solid rgba(0, 255, 135, 0.3);
+}
+
+.lessons-track {
+  max-width: 800px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  position: relative;
+}
+
+.lesson-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Connector lines between lessons */
+.connector {
+  width: 4px;
+  height: 40px;
+  background: rgba(0, 255, 135, 0.2);
+  margin: 0 auto;
+  position: relative;
+  left: -400px;
+  transform: translateX(50%);
+  box-shadow: 0 0 5px rgba(0, 255, 135, 0.3);
+}
+
+.connector.completed {
+  background: linear-gradient(180deg, #00ff87 0%, #64ffda 100%);
+  box-shadow: 0 0 10px rgba(0, 255, 135, 0.6);
+}
+
+/* Lesson Cards */
+.lesson-card {
+  display: flex;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  border-radius: 12px;
+  background: rgba(10, 14, 39, 0.8);
+  border: 2px solid rgba(0, 255, 135, 0.3);
+  transition: all 0.3s;
+  text-decoration: none;
+  color: inherit;
+  position: relative;
+  overflow: hidden;
+}
+
+.lesson-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(0, 255, 135, 0.1), transparent);
+  transition: left 0.5s;
+}
+
+.lesson-card.available {
+  cursor: pointer;
+}
+
+.lesson-card.available:hover {
+  transform: translateX(8px);
+  border-color: #00ff87;
+  box-shadow: 0 0 30px rgba(0, 255, 135, 0.4);
+  background: rgba(0, 255, 135, 0.1);
+}
+
+.lesson-card.available:hover::before {
+  left: 100%;
+}
+
+.lesson-card.completed {
+  background: linear-gradient(135deg, rgba(0, 255, 135, 0.15) 0%, rgba(100, 255, 218, 0.15) 100%);
+  border-color: #00ff87;
+  box-shadow: 0 0 20px rgba(0, 255, 135, 0.3);
+}
+
+.lesson-card.locked {
+  opacity: 0.5;
+  background: rgba(10, 14, 39, 0.6);
+  border-color: rgba(139, 144, 160, 0.3);
+}
+
+.lesson-card.access-locked {
+  opacity: 0.4;
+  background: linear-gradient(135deg, rgba(237, 137, 54, 0.1) 0%, rgba(229, 62, 62, 0.1) 100%);
+  border-color: #fc8181;
+}
+
+.access-message {
+  color: #ff6b6b;
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin: 0.5rem 0 0 0;
+  padding: 0.5rem;
+  background: rgba(252, 129, 129, 0.15);
+  border-radius: 6px;
+  font-family: 'Courier New', monospace;
+  border: 1px solid rgba(252, 129, 129, 0.3);
+}
+
+/* Status Badge */
+.lesson-status-badge {
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 1.5rem;
+  box-shadow: 0 0 15px currentColor;
+}
+
+.lesson-card.available .lesson-status-badge {
+  background: linear-gradient(135deg, #00ff87 0%, #64ffda 100%);
+  color: #0a0e27;
+}
+
+.lesson-card.completed .lesson-status-badge {
+  background: #00ff87;
+  color: #0a0e27;
+  animation: pulse 2s infinite;
+}
+
+.lesson-card.locked .lesson-status-badge,
+.lesson-card.access-locked .lesson-status-badge {
+  background: rgba(139, 144, 160, 0.2);
+  border: 2px solid rgba(139, 144, 160, 0.3);
+  box-shadow: none;
+}
+
+.play-icon, .check-icon, .lock-icon {
+  font-size: 1.2rem;
+}
+
+/* Lesson Content */
+.lesson-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.lesson-header-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.25rem;
+  flex-wrap: wrap;
+}
+
+.category-badge {
+  font-size: 1.2rem;
+  filter: drop-shadow(0 0 5px #00ff87);
+}
+
+.module-badge {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.75rem;
+  background: linear-gradient(135deg, rgba(0, 255, 135, 0.2) 0%, rgba(100, 255, 218, 0.2) 100%);
+  border: 1px solid rgba(0, 255, 135, 0.5);
+  border-radius: 12px;
+  color: #00ff87;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+  text-transform: uppercase;
+  box-shadow: 0 0 10px rgba(0, 255, 135, 0.2);
+}
+
+.required-level-badge {
+  font-size: 0.7rem;
+  padding: 0.25rem 0.6rem;
+  background: rgba(139, 144, 160, 0.2);
+  border: 1px solid rgba(139, 144, 160, 0.4);
+  border-radius: 10px;
+  color: #8892b0;
+  font-weight: 600;
+  text-transform: capitalize;
+  font-family: 'Courier New', monospace;
+}
+
+.lesson-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #64ffda;
+  margin: 0;
+  font-family: 'Courier New', monospace;
+  text-shadow: 0 0 10px rgba(100, 255, 218, 0.3);
+}
+
+.lesson-description {
+  font-size: 1rem;
+  color: #8892b0;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.lesson-meta {
+  display: flex;
+  gap: 1.5rem;
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  color: #64ffda;
+  font-family: 'Courier New', monospace;
+}
+
+.duration {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.lesson-number {
+  font-weight: 600;
+  color: #00ff87;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .page-title {
+    font-size: 2rem;
+  }
+  
+  .progress-stats {
+    gap: 1rem;
+  }
+  
+  .stat-number {
+    font-size: 1.5rem;
+  }
+  
+  .lessons-container {
+    padding: 1rem;
+  }
+  
+  .lesson-card {
+    padding: 1rem;
+  }
+  
+  .lesson-title {
+    font-size: 1.2rem;
+  }
+  
+  .connector {
+    left: 25px;
+  }
+  
+  .lesson-card.available:hover {
+    transform: translateY(-4px) translateX(0);
+  }
+}
