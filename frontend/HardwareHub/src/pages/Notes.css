@@ -2,7 +2,7 @@
 
 .notes-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #0a0e27 0%, #16213e 50%, #0f3460 100%);
+  background: #0a0e27;
   padding: 2rem;
 }
 
@@ -204,6 +204,7 @@
     opacity: 0;
     transform: translateY(-10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -304,6 +305,7 @@
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);

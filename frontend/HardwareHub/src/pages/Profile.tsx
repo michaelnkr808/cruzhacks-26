@@ -13,7 +13,7 @@ import './Profile.css';
  */
 
 function Profile() {
-  
+
   // Mock user data - pretend this came from an API
   const userData = {
     name: "Alex Chen",
@@ -134,20 +134,6 @@ function Profile() {
               </div>
               <label className="toggle">
                 <input type="checkbox" defaultChecked />
-                <span className="toggle-slider"></span>
-              </label>
-            </div>
-            <div className="setting-item">
-              <div className="setting-info">
-                <span className="setting-name">Dark Mode</span>
-                <span className="setting-description">Always enabled (hacker theme)</span>
-              </div>
-              <label className="toggle">
-                <input 
-                  type="checkbox" 
-                  checked={true}
-                  disabled
-                />
                 <span className="toggle-slider"></span>
               </label>
             </div>
