@@ -15,10 +15,10 @@ export const auth0Authentication = new AuthenticationClient({
 
 export const getAuth0Token = async () => {
   try {
-    const clientCredentials = await auth0Management.clientCredentialsGrant({
+    const clientCredentials = await auth0Authentication.oauth.clientCredentialsGrant({
       audience: process.env.AUTH0_AUDIENCE || `https://${process.env.AUTH0_DOMAIN}/api/v2/`,
     });
-    return clientCredentials.access_token;
+    return clientCredentials.data.access_token;
   } catch (error) {
     console.error('Error getting Auth0 token:', error);
     throw error;

@@ -18,17 +18,6 @@ export const authMiddleware = async (c: Context, next: Next) => {
 
     const token = authHeader.split(' ')[1];
     
-    // For demo purposes, we'll use a simple mock verification
-    // In production, you'd verify against Auth0's JWKS
-    if (token.includes('mock-signature')) {
-      // Extract user ID from mock token
-      const payload = token.split('.')[1];
-      const decoded = JSON.parse(Buffer.from(payload, 'base64').toString());
-      c.set('userId', decoded.sub);
-      await next();
-      return;
-    }
-
     // Try to decode our simple base64 token (from signup/login)
     try {
       const decoded = JSON.parse(Buffer.from(token, 'base64').toString());
@@ -42,7 +31,7 @@ export const authMiddleware = async (c: Context, next: Next) => {
       // Not a base64 token, continue to JWT verification
     }
 
-    // Production JWT verification
+    // JWT verification using Auth0's JWKS
     const jwksUrl = `https://${process.env.AUTH0_DOMAIN}/.well-known/jwks.json`;
     const jwksResponse = await fetch(jwksUrl);
     const jwks = await jwksResponse.json() as { keys: Array<{ kid: string; [key: string]: any }> };

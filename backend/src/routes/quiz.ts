@@ -103,10 +103,10 @@ app.post('/generate', async (c) => {
       await sleep(5000); // Wait 5 seconds between polls
       statusResponse = await client.interactives.practice.status({ set_id: setId });
 
-      if (statusResponse.status === 'completed') {
+      if (statusResponse && statusResponse.status === 'completed') {
         console.log(`[QUIZ] Practice set completed after ${(attempts + 1) * 5} seconds`);
         break;
-      } else if (statusResponse.status === 'failed') {
+      } else if (statusResponse && statusResponse.status === 'failed') {
         console.error('[QUIZ] Practice set generation failed:', statusResponse.message);
         throw new Error(statusResponse.message || 'Practice set generation failed');
       }
@@ -159,7 +159,7 @@ app.post('/grade', async (c) => {
       return c.json({ error: 'OpenNote API key not configured' }, 500);
     }
 
-    const client = new OpennoteClient({ api_key: OPENNOTE_API_KEY });
+    const client = await getOpennoteClient(OPENNOTE_API_KEY);
 
     const gradeResponse: GradeFRQResponse = await client.interactives.practice.grade({
       problem: {

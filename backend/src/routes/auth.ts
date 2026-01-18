@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { supabase } from '../lib/supabase';
+import { auth0Authentication } from '../lib/auth0';
 
 const app = new Hono();
 
@@ -13,19 +14,30 @@ app.post('/otp/request', async (c) => {
       return c.json({ error: 'Email is required' }, 400);
     }
 
-    // In production, this would call Auth0's passwordless API to send OTP
-    // For now, generate a temporary OTP and store it
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+    // Call Auth0's passwordless API to send OTP
+    const sendResponse = await fetch(`https://${process.env.AUTH0_DOMAIN}/passwordless/start`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        client_id: process.env.AUTH0_CLIENT_ID,
+        client_secret: process.env.AUTH0_CLIENT_SECRET,
+        connection: 'email',
+        email,
+        send: 'code',
+      }),
+    });
 
-    // Store OTP in session/cache (in production, use Redis or similar)
-    console.log(`[AUTH0 OTP] Sending OTP ${otp} to ${email}`);
+    if (!sendResponse.ok) {
+      throw new Error('Failed to send OTP');
+    }
+
+    console.log(`[AUTH0 OTP] Sent OTP to ${email}`);
 
     return c.json({
       success: true,
       message: 'OTP sent to email',
-      // In production, don't return OTP. This is for testing only.
-      // otp: otp,
     }, 200);
   } catch (error: any) {
     console.error('OTP request error:', error);
@@ -33,26 +45,56 @@ app.post('/otp/request', async (c) => {
   }
 });
 
-// OTP Verify - Verify OTP and create user in Supabase Auth
+// OTP Verify - Verify OTP with Auth0 and create/manage user in Supabase
 app.post('/otp/verify', async (c) => {
   try {
     const body = await c.req.json();
     const { email, otp, name, level } = body;
 
-    if (!email || !otp || !name) {
-      return c.json({ error: 'Missing required fields' }, 400);
+    if (!email || !otp) {
+      return c.json({ error: 'Email and OTP are required' }, 400);
     }
 
-    // In production, verify OTP with Auth0
-    console.log(`[AUTH0 OTP] Verifying OTP ${otp} for ${email}`);
+    // Verify OTP with Auth0's passwordless API
+    const verifyResponse = await fetch(`https://${process.env.AUTH0_DOMAIN}/oauth/token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        grant_type: 'passwordless/otp',
+        client_id: process.env.AUTH0_CLIENT_ID,
+        client_secret: process.env.AUTH0_CLIENT_SECRET,
+        username: email,
+        otp,
+        realm: 'email',
+        scope: 'openid profile email',
+        audience: process.env.AUTH0_AUDIENCE || `https://${process.env.AUTH0_DOMAIN}/api/v2/`,
+      }),
+    });
+
+    if (!verifyResponse.ok) {
+      const errorData = await verifyResponse.json();
+      throw new Error(errorData.error_description || 'OTP verification failed');
+    }
+
+    const tokenResponse = await verifyResponse.json();
+
+    console.log(`[AUTH0 OTP] Verified OTP for ${email}`);
+
+    // Get user info from Auth0 (decode access_token to get user ID)
+    const accessToken = tokenResponse.access_token;
+
+    // Decode the access_token to get user ID (sub claim)
+    const decoded = JSON.parse(Buffer.from(accessToken.split('.')[1], 'base64').toString());
+    const auth0UserId = decoded.sub;
 
     // Check if user already exists in Supabase Auth
     const { data: existingUsers } = await supabase.auth.admin.listUsers();
-    const existingUser = existingUsers?.users?.find(u => u.email === email);
+    const existingUser = existingUsers?.users?.find(u => u.user_metadata?.auth0_id === auth0UserId || u.email === email);
 
     if (existingUser) {
-      // User exists, return their info
-      const token = Buffer.from(JSON.stringify({ userId: existingUser.id, email })).toString('base64');
+      // User exists, return their info with Auth0 token
       return c.json({ 
         user: {
           id: existingUser.id,
@@ -60,18 +102,19 @@ app.post('/otp/verify', async (c) => {
           name: existingUser.user_metadata?.name || name,
           level: existingUser.user_metadata?.level || level || 'beginner'
         }, 
-        token,
-        message: 'User already exists' 
+        token: accessToken,
+        message: 'Login successful' 
       }, 200);
     }
 
-    // Create user in Supabase Auth (Authentication -> Users tab)
+    // Create user in Supabase Auth with Auth0 ID
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email,
-      email_confirm: true, // Auto-confirm since we verified via OTP
+      email_confirm: true, 
       user_metadata: {
         name,
-        level: level || 'beginner'
+        level: level || 'beginner',
+        auth0_id: auth0UserId
       }
     });
 
@@ -82,9 +125,6 @@ app.post('/otp/verify', async (c) => {
 
     console.log('User created successfully in Supabase Auth:', authData.user);
 
-    // Generate session token (in production, use JWT)
-    const token = Buffer.from(JSON.stringify({ userId: authData.user.id, email })).toString('base64');
-
     return c.json({
       user: {
         id: authData.user.id,
@@ -92,7 +132,7 @@ app.post('/otp/verify', async (c) => {
         name: authData.user.user_metadata?.name,
         level: authData.user.user_metadata?.level
       },
-      token,
+      token: accessToken,
       message: 'OTP verified successfully'
     }, 201);
   } catch (error: any) {

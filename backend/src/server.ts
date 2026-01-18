@@ -1,7 +1,3 @@
-import redditRoutes from './routes/reddit';
-// ... other imports
-app.use('/api/reddit', redditRoutes);
-
 import { Hono } from "hono";
 import { supabase } from "./supabase";
 
