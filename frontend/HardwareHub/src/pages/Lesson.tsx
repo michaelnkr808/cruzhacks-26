@@ -1,17 +1,19 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { getLessonById, lessons, markLessonComplete, isLessonCompleted } from '../data/lessonData';
+import { getLessonBySlug, lessons, markLessonComplete, isLessonCompleted } from '../data/lessonData';
+import Quiz from '../components/Quiz/Quiz';
+import Toast from '../components/Toast/Toast';
 import './Lesson.css';
 
 /**
  * Lesson Page - Individual lesson view WITH PERSISTENT NOTES
  * 
  * Key Concepts:
- * - useParams(): Gets the lesson ID from the URL (/lesson/1 → id = "1")
+ * - useParams(): Gets the lesson slug from the URL (/lesson/button-module → slug = "button-module")
  * - useState(): Manages the notes that users type
  * - useEffect(): Loads saved notes from localStorage on mount
  * - localStorage: Persists notes across browser sessions
- * - Data fetching: We use getLessonById() to get the right lesson
+ * - Data fetching: We use getLessonBySlug() to get the right lesson
  * - Two-column layout: Content on left, notes on right
  * 
  * Real-world pattern:
@@ -20,35 +22,71 @@ import './Lesson.css';
  */
 
 function Lesson() {
-  // Get the lesson ID from the URL
-  const { id } = useParams<{ id: string }>();
+  // Get the lesson slug from the URL
+  const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
-  const lessonId = parseInt(id || '1');
   
   // State for notes - React remembers this between re-renders
   const [notes, setNotes] = useState('');
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  
+  // Quiz state
+  const [quizPassed, setQuizPassed] = useState(false);
+  
+  // Notes panel tab state
+  const [activeTab, setActiveTab] = useState<'notes' | 'quiz'>('notes');
+  
+  // Toast notification state
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  
+  // Fetch the lesson data based on slug
+  const lessonData = getLessonBySlug(slug || '');
+  const lessonId = lessonData?.id || 0;
+  
   const [completed, setCompleted] = useState(isLessonCompleted(lessonId));
   
-  // Fetch the lesson data based on ID
-  // parseInt() converts string "1" to number 1
-  const lessonData = getLessonById(lessonId);
-  
-  // Load saved notes and completion status when component mounts or ID changes
+  // Listen for path unlock events
   useEffect(() => {
-    const savedNotes = localStorage.getItem(`lesson-${id}-notes`);
+    const handlePathUnlocked = (event: CustomEvent<{ pathId: string }>) => {
+      if (event.detail.pathId === 'getting-started') {
+        setToastMessage('🎉 Congratulations! You completed Getting Started! IF MAGIC path is now unlocked!');
+        setShowToast(true);
+      }
+    };
+    
+    window.addEventListener('pathUnlocked', handlePathUnlocked as EventListener);
+    return () => {
+      window.removeEventListener('pathUnlocked', handlePathUnlocked as EventListener);
+    };
+  }, []);
+  
+  // Load saved notes, completion status, and quiz state when component mounts or slug changes
+  useEffect(() => {
+    const savedNotes = localStorage.getItem(`lesson-${slug}-notes`);
     if (savedNotes) {
       setNotes(savedNotes);
     } else {
       setNotes(''); // Clear notes if switching to a lesson with no saved notes
     }
-    setCompleted(isLessonCompleted(lessonId));
-  }, [id, lessonId]);
+    
+    // Load quiz pass status for this lesson
+    const savedQuizPass = localStorage.getItem(`lesson-${slug}-quiz-passed`);
+    setQuizPassed(savedQuizPass === 'true');
+    
+    // Reset quiz state when changing lessons
+    setQuizStarted(false); // Reset quiz started flag for new lesson
+    setActiveTab('notes');
+    
+    if (lessonData) {
+      setCompleted(isLessonCompleted(lessonData.id));
+    }
+  }, [slug, lessonData]);
   
   // Save notes to localStorage
   const saveNotes = () => {
     setSaveStatus('saving');
-    localStorage.setItem(`lesson-${id}-notes`, notes);
+    localStorage.setItem(`lesson-${slug}-notes`, notes);
     
     // Show "saved" status for 2 seconds
     setTimeout(() => {
@@ -58,21 +96,57 @@ function Lesson() {
   };
   
   // Handle "Mark Complete & Next" button
-  const handleCompleteAndNext = () => {
-    // Mark lesson as complete
-    markLessonComplete(lessonId);
+  const handleCompleteAndNext = async () => {
+    if (!lessonData) return;
+    
+    // Mark lesson as complete (now async with backend sync)
+    await markLessonComplete(lessonData.id);
     setCompleted(true);
     
-    // Navigate to next lesson
-    const currentIndex = lessons.findIndex(l => l.id === lessonId);
-    if (currentIndex < lessons.length - 1) {
-      const nextLesson = lessons[currentIndex + 1];
-      navigate(`/lesson/${nextLesson.id}`);
+    // Navigate to next lesson (in same path)
+    const pathLessons = lessons.filter(l => l.path === lessonData.path);
+    const currentIndex = pathLessons.findIndex(l => l.id === lessonData.id);
+    if (currentIndex < pathLessons.length - 1) {
+      const nextLesson = pathLessons[currentIndex + 1];
+      navigate(`/lesson/${nextLesson.slug}`);
     } else {
       // If last lesson, go back to learning page
-      navigate('/learning');
+      navigate(`/track/${lessonData.path || 'ifmagic'}`);
     }
   };
+  
+  // Build lesson content string for quiz
+  const getLessonContentForQuiz = (): string => {
+    if (!lessonData) return '';
+    
+    const sections = lessonData.content.sections
+      .map(s => `${s.title}: ${s.text}`)
+      .join('\n\n');
+    
+    return `${lessonData.content.overview}\n\n${sections}`;
+  };
+  
+  // Handle quiz completion
+  const handleQuizComplete = async (score: number, total: number) => {
+    // Track perfect scores for achievements
+    if (score === total) {
+      localStorage.setItem(`lesson-${slug}-quiz-perfect`, 'true');
+    }
+    
+    // If user scores 80% or higher, mark quiz as passed and allow progression
+    if (score / total >= 0.8 && lessonData) {
+      setQuizPassed(true);
+      localStorage.setItem(`lesson-${slug}-quiz-passed`, 'true');
+      await markLessonComplete(lessonData.id);
+      setCompleted(true);
+    }
+  };
+  
+  // Track if quiz has been started (to prevent reset on tab switch)
+  const [quizStarted, setQuizStarted] = useState(false);
+  
+  // Check if user can progress - MUST pass quiz (80%+) for this specific lesson
+  const canProgress = quizPassed;
   
   // Handle case where lesson doesn't exist (good error handling!)
   if (!lessonData) {
@@ -91,6 +165,16 @@ function Lesson() {
 
   return (
     <div className="lesson-page">
+      {/* Toast notification for path unlock */}
+      {showToast && (
+        <Toast 
+          message={toastMessage} 
+          type="success" 
+          duration={6000}
+          onClose={() => setShowToast(false)} 
+        />
+      )}
+      
       {/* Back button */}
       <Link to="/learning" className="back-button">
         ← Back to Learning Track
@@ -187,53 +271,123 @@ function Lesson() {
             <div className="lesson-navigation">
               <button 
                 className="nav-btn" 
-                disabled={lessonId === 1}
-                onClick={() => navigate(`/lesson/${lessonId - 1}`)}
+                disabled={!lessonData || (() => {
+                  const pathLessons = lessons.filter(l => l.path === lessonData?.path);
+                  return pathLessons.findIndex(l => l.id === lessonData?.id) === 0;
+                })()}
+                onClick={() => {
+                  if (!lessonData) return;
+                  const pathLessons = lessons.filter(l => l.path === lessonData.path);
+                  const currentIndex = pathLessons.findIndex(l => l.id === lessonData.id);
+                  if (currentIndex > 0) {
+                    navigate(`/lesson/${pathLessons[currentIndex - 1].slug}`);
+                  }
+                }}
               >
                 ← Previous Lesson
               </button>
               <button 
-                className="nav-btn primary"
-                onClick={handleCompleteAndNext}
+                className={`nav-btn primary ${!canProgress ? 'locked' : ''}`}
+                onClick={canProgress ? handleCompleteAndNext : () => setActiveTab('quiz')}
+                title={!canProgress ? 'Complete the quiz with 80%+ to unlock' : ''}
               >
-                {completed ? 'Next Lesson →' : 'Mark Complete & Next →'}
+                {!canProgress ? '🔒 Take Quiz to Unlock' : completed ? 'Next Lesson →' : 'Complete & Next →'}
               </button>
             </div>
+            
+            {/* Quiz requirement notice */}
+            {!canProgress && (
+              <div className="quiz-required-notice">
+                <span className="notice-icon">◈</span>
+                <p>Complete the knowledge check quiz with 80% or higher to unlock the next lesson.</p>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Right side - Notes panel (OpenNotes simulation) */}
+        {/* Right side - Notes panel with tabs */}
         <div className="notes-panel">
-          <div className="notes-header">
-            <h3>◈ Your Notes</h3>
-            <small>Powered by OpenNotes</small>
+          {/* Tab Navigation */}
+          <div className="panel-tabs">
+            <button 
+              className={`panel-tab ${activeTab === 'notes' ? 'active' : ''}`}
+              onClick={() => setActiveTab('notes')}
+            >
+              ◈ Notes
+            </button>
+            <button 
+              className={`panel-tab ${activeTab === 'quiz' ? 'active' : ''} ${!quizPassed ? 'required' : 'passed'}`}
+              onClick={() => setActiveTab('quiz')}
+            >
+              {quizPassed ? '✓ Quiz' : '▶ Quiz'}
+              {!quizPassed && <span className="required-badge">Required</span>}
+            </button>
           </div>
-          <textarea
-            className="notes-textarea"
-            placeholder="Take notes as you learn...
+          
+          {/* Notes Tab Content */}
+          {activeTab === 'notes' && (
+            <>
+              <div className="notes-header">
+                <h3>Your Notes</h3>
+                <small>Powered by OpenNote</small>
+              </div>
+              <textarea
+                className="notes-textarea"
+                placeholder="Take notes as you learn...
 
 Tips for effective notes:
 • Summarize key concepts
 • Write questions you have
 • Note things to practice
 • Draw connections to other lessons"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-          />
-          <div className="notes-footer">
-            <span className="character-count">
-              {notes.length} characters
-            </span>
-            <button 
-              className="save-notes-btn"
-              onClick={saveNotes}
-              disabled={saveStatus === 'saving'}
-            >
-              {saveStatus === 'saving' && '◷ Saving...'}
-              {saveStatus === 'saved' && '✓ Saved!'}
-              {saveStatus === 'idle' && '✓ Save Notes'}
-            </button>
-          </div>
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+              />
+              <div className="notes-footer">
+                <span className="character-count">
+                  {notes.length} characters
+                </span>
+                <button 
+                  className="save-notes-btn"
+                  onClick={saveNotes}
+                  disabled={saveStatus === 'saving'}
+                >
+                  {saveStatus === 'saving' && '◷ Saving...'}
+                  {saveStatus === 'saved' && '✓ Saved!'}
+                  {saveStatus === 'idle' && '✓ Save Notes'}
+                </button>
+              </div>
+              
+              {/* Prompt to take quiz */}
+              {!quizPassed && (
+                <div className="quiz-prompt">
+                  <p>📝 Ready to test your knowledge?</p>
+                  <button 
+                    className="take-quiz-btn"
+                    onClick={() => setActiveTab('quiz')}
+                  >
+                    Take Quiz →
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+          
+          {/* Quiz Tab Content - Only render once started to prevent reset */}
+          {(activeTab === 'quiz' || quizStarted) && lessonData && (
+            <div className="quiz-tab-content" style={{ display: activeTab === 'quiz' ? 'block' : 'none' }}>
+              <Quiz
+                lessonTitle={lessonData.title}
+                lessonSlug={lessonData.slug}
+                lessonContent={getLessonContentForQuiz()}
+                userNotes={notes}
+                onClose={() => setActiveTab('notes')}
+                onComplete={handleQuizComplete}
+                inline={true}
+                onStart={() => setQuizStarted(true)}
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>

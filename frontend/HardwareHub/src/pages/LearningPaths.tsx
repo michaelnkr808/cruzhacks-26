@@ -1,10 +1,13 @@
 import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { recheckAllPathCompletions } from '../data/lessonData';
 import './LearningPaths.css';
 
 /**
  * Learning Paths Page - Select your hardware platform
  * 
  * Shows different learning tracks for various hardware platforms:
+ * - Getting Started (required first)
  * - ESP32
  * - Arduino
  * - Raspberry Pi Pico
@@ -20,9 +23,20 @@ interface LearningPath {
   difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
   lessonCount: number;
   comingSoon?: boolean;
+  requiresGettingStarted?: boolean;
 }
 
 const learningPaths: LearningPath[] = [
+  {
+    id: 'getting-started',
+    name: 'Getting Started',
+    description: 'Your first steps into embedded programming. Complete this path to unlock all other learning tracks!',
+    icon: '★',
+    difficulty: 'Beginner',
+    lessonCount: 5,
+    comingSoon: false,
+    requiresGettingStarted: false,
+  },
   {
     id: 'ifmagic',
     name: 'IF MAGIC',
@@ -31,6 +45,7 @@ const learningPaths: LearningPath[] = [
     difficulty: 'Beginner',
     lessonCount: 27,
     comingSoon: false,
+    requiresGettingStarted: true,
   },
   {
     id: 'esp32',
@@ -40,6 +55,7 @@ const learningPaths: LearningPath[] = [
     difficulty: 'Intermediate',
     lessonCount: 24,
     comingSoon: true,
+    requiresGettingStarted: true,
   },
   {
     id: 'arduino',
@@ -49,6 +65,7 @@ const learningPaths: LearningPath[] = [
     difficulty: 'Beginner',
     lessonCount: 30,
     comingSoon: true,
+    requiresGettingStarted: true,
   },
   {
     id: 'raspberrypi',
@@ -58,6 +75,7 @@ const learningPaths: LearningPath[] = [
     difficulty: 'Intermediate',
     lessonCount: 22,
     comingSoon: true,
+    requiresGettingStarted: true,
   },
   {
     id: 'stm32',
@@ -67,10 +85,37 @@ const learningPaths: LearningPath[] = [
     difficulty: 'Advanced',
     lessonCount: 28,
     comingSoon: true,
+    requiresGettingStarted: true,
   },
 ];
 
 function LearningPaths() {
+  const [gettingStartedComplete, setGettingStartedComplete] = useState(false);
+
+  useEffect(() => {
+    // Recheck all path completions in case any were missed
+    recheckAllPathCompletions();
+    
+    // Check if Getting Started path is complete
+    const checkCompletion = () => {
+      const completedPaths = localStorage.getItem('completedPaths');
+      if (completedPaths) {
+        const paths = JSON.parse(completedPaths);
+        setGettingStartedComplete(paths.includes('getting-started'));
+      }
+    };
+    
+    checkCompletion();
+    
+    // Listen for path unlock events
+    const handlePathUnlocked = () => {
+      checkCompletion();
+    };
+    
+    window.addEventListener('pathUnlocked', handlePathUnlocked);
+    return () => window.removeEventListener('pathUnlocked', handlePathUnlocked);
+  }, []);
+
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
       case 'Beginner': return '#48bb78';
@@ -78,6 +123,12 @@ function LearningPaths() {
       case 'Advanced': return '#667eea';
       default: return '#718096';
     }
+  };
+
+  const isPathLocked = (path: LearningPath) => {
+    if (path.comingSoon) return false; // Coming soon has its own state
+    if (!path.requiresGettingStarted) return false;
+    return !gettingStartedComplete;
   };
 
   return (
@@ -91,10 +142,15 @@ function LearningPaths() {
       </div>
 
       <div className="paths-grid">
-        {learningPaths.map((path) => (
-          <div key={path.id} className={`path-card ${path.comingSoon ? 'coming-soon' : ''}`}>
+        {learningPaths.map((path) => {
+          const locked = isPathLocked(path);
+          return (
+          <div key={path.id} className={`path-card ${path.comingSoon ? 'coming-soon' : ''} ${locked ? 'locked' : ''}`}>
             {path.comingSoon && (
               <div className="coming-soon-badge">Coming Soon</div>
+            )}
+            {locked && !path.comingSoon && (
+              <div className="locked-badge">🔒 Complete Getting Started First</div>
             )}
             
             <div className="path-icon">{path.icon}</div>
@@ -114,18 +170,22 @@ function LearningPaths() {
               </div>
             </div>
             
-            {!path.comingSoon ? (
+            {!path.comingSoon && !locked ? (
               <Link to={`/track/${path.id}`} className="path-button">
-                Start Learning
+                {path.id === 'getting-started' ? 'Start Here' : 'Start Learning'}
                 <span className="arrow">→</span>
               </Link>
+            ) : locked ? (
+              <button className="path-button disabled" disabled>
+                🔒 Locked
+              </button>
             ) : (
               <button className="path-button disabled" disabled>
                 Coming Soon
               </button>
             )}
           </div>
-        ))}
+        )})}
       </div>
 
       <div className="paths-footer">

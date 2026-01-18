@@ -1,16 +1,29 @@
-import { createClient } from '@supabase/supabase-js';
-import type { Database } from '../types/database.types';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.SUPABASE_URL || '';
-const supabaseKey = process.env.SUPABASE_ANON_KEY || '';
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
-if (!supabaseUrl || !supabaseKey) {
-  throw new Error('Missing Supabase environment variables');
-}
+// Create supabase client lazily to avoid build-time errors
+let _supabase: SupabaseClient | null = null;
 
-// Create Supabase client
-export const supabase = createClient<Database>(supabaseUrl, supabaseKey);
+export const getSupabase = (): SupabaseClient => {
+  if (!_supabase) {
+    if (!supabaseUrl || !supabaseServiceRoleKey) {
+      throw new Error('Missing Supabase environment variables');
+    }
+    _supabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    });
+  }
+  return _supabase;
+};
 
-// Create Supabase admin client (with service role key for admin operations)
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-export const supabaseAdmin = createClient<Database>(supabaseUrl, supabaseServiceKey);
+// For backwards compatibility - creates client on first access
+export const supabase = new Proxy({} as SupabaseClient, {
+  get(_, prop) {
+    return (getSupabase() as any)[prop];
+  }
+});

@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import './Projects.css';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 /**
  * Projects Page - List and Create Projects
@@ -22,16 +24,37 @@ interface Project {
 }
 
 function Projects() {
-  // Load projects from localStorage
-  const [projects, setProjects] = useState<Project[]>(() => {
-    const saved = localStorage.getItem('hardwareHubProjects');
-    return saved ? JSON.parse(saved) : [];
-  });
-  
+  const [projects, setProjects] = useState<Project[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectDesc, setNewProjectDesc] = useState('');
-  
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const token = localStorage.getItem('authToken');
+        const response = await fetch(`${API_URL}/api/projects`, {
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setProjects(data.projects || []);
+        } else {
+          // If unauthorized or error, use empty array
+          setProjects([]);
+        }
+      } catch (error) {
+        console.error('Failed to fetch projects:', error);
+        setProjects([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProjects();
+  }, []);
+
   const handleCreateProject = () => {
     if (!newProjectName.trim()) return;
     
@@ -59,6 +82,8 @@ function Projects() {
     setProjects(updatedProjects);
     localStorage.setItem('hardwareHubProjects', JSON.stringify(updatedProjects));
   };
+
+  if (loading) return <div>Loading projects...</div>;
 
   return (
     <div className="projects-page">

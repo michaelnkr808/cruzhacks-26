@@ -1,7 +1,9 @@
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { lessons, getCurrentUser, canAccessLesson, getCompletedLessons } from '../data/lessonData';
+import { getCurrentUser, canAccessLesson, getCompletedLessons, lessons as localLessons } from '../data/lessonData';
 import { useEffect, useState } from 'react';
 import './Learning.css';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 /**
  * Learning Track Page - The roadmap/track view for a specific hardware platform
@@ -20,10 +22,15 @@ function Learning() {
   const { pathId } = useParams<{ pathId: string }>();
   const [user, setUser] = useState(getCurrentUser());
   const [completedLessons, setCompletedLessons] = useState<number[]>([]);
+  const [lessons, setLessons] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Valid paths that have content
+  const validPaths = ['ifmagic', 'getting-started'];
   
-  // For now, only IF MAGIC has content. Other paths redirect back.
+  // For now, only IF MAGIC and Getting Started have content. Other paths redirect back.
   useEffect(() => {
-    if (pathId && pathId !== 'ifmagic') {
+    if (pathId && !validPaths.includes(pathId)) {
       navigate('/learning');
       return;
     }
@@ -35,24 +42,69 @@ function Learning() {
       setUser(currentUser);
       setCompletedLessons(getCompletedLessons());
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate, pathId]);
   
+  useEffect(() => {
+    const fetchLessons = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/lessons`);
+        if (response.ok) {
+          const data = await response.json();
+          // Use API data if available, otherwise fallback to local
+          const apiLessons = data.lessons || [];
+          setLessons(apiLessons.length > 0 ? apiLessons : localLessons);
+        } else {
+          // Fallback to local data if API fails
+          setLessons(localLessons);
+        }
+      } catch (error) {
+        console.error('Failed to fetch lessons, using local data:', error);
+        // Fallback to local data if API fails
+        setLessons(localLessons);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLessons();
+  }, []);
+
   // If no user yet (during redirect), show loading
   if (!user) {
     return <div className="learning"><p>Loading...</p></div>;
   }
+
+  if (loading) return <div>Loading lessons...</div>;
+  
+  // Filter lessons by the current path
+  const pathLessons = lessons.filter(l => l.path === pathId);
   
   // Calculate progress stats from lesson data
   // This is "derived state" - calculating values from existing data
-  const completedCount = completedLessons.length;
-  const accessibleLessons = lessons.filter(l => canAccessLesson(user.level, l));
-  const availableCount = accessibleLessons.filter(l => !completedLessons.includes(l.id)).length;
-  const totalCount = lessons.length;
-  const progressPercent = (completedCount / totalCount) * 100;
+  const completedCount = completedLessons.filter(id => pathLessons.some(l => l.id === id)).length;
+  const accessibleLessons = pathLessons.filter(l => canAccessLesson(user.level, l));
+  const totalCount = pathLessons.length;
+  const progressPercent = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+
+  // Get path display info
+  const getPathInfo = (id: string) => {
+    switch (id) {
+      case 'getting-started':
+        return { name: 'Getting Started', subtitle: 'Complete this path to unlock other learning tracks!' };
+      case 'ifmagic':
+        return { name: 'IF MAGIC Track', subtitle: 'Master embedded programming with hands-on IF MAGIC modules' };
+      default:
+        return { name: 'Learning Track', subtitle: 'Explore embedded programming' };
+    }
+  };
+  
+  const pathInfo = getPathInfo(pathId || 'ifmagic');
 
   // Get category emoji for visual organization
   const getCategoryIcon = (category: string) => {
     switch (category) {
+      case 'getting-started': return '★';
       case 'foundation': return '▣';
       case 'sensor': return '◉';
       case 'output': return '◆';
@@ -80,9 +132,9 @@ function Learning() {
           <div className="breadcrumb">
             <Link to="/learning" className="breadcrumb-link">Learning Paths</Link>
             <span className="breadcrumb-separator">▸</span>
-            <span className="breadcrumb-current">IF MAGIC Track</span>
+            <span className="breadcrumb-current">{pathInfo.name}</span>
           </div>
-          <h1 className="page-title">Your IF MAGIC Learning Journey</h1>
+          <h1 className="page-title">Your {pathInfo.name} Learning Journey</h1>
           <div className="user-level-badge" style={{ borderColor: levelBadge.color }}>
             <span className="level-emoji">{levelBadge.icon}</span>
             <span className="level-text" style={{ color: levelBadge.color }}>
@@ -91,7 +143,7 @@ function Learning() {
           </div>
         </div>
         <p className="page-subtitle">
-          Master embedded programming with hands-on IF MAGIC modules
+          {pathInfo.subtitle}
         </p>
         
         {/* Progress indicator - now dynamic and based on access! */}
@@ -119,7 +171,7 @@ function Learning() {
       {/* Lesson cards - the roadmap with access control! */}
       <div className="lessons-container">
         <div className="lessons-track">
-          {lessons.map((lesson, index) => {
+          {pathLessons.map((lesson, index) => {
             // Check if user can access this lesson
             const isAccessLocked = !canAccessLesson(user.level, lesson);
             const isCompleted = completedLessons.includes(lesson.id);
@@ -127,7 +179,7 @@ function Learning() {
             return (
               <div key={lesson.id} className="lesson-wrapper">
                 {/* Connection line between lessons */}
-                {index < lessons.length - 1 && (
+                {index < pathLessons.length - 1 && (
                   <div className={`connector ${isCompleted ? 'completed' : ''}`}></div>
                 )}
                 
@@ -159,7 +211,7 @@ function Learning() {
                   </div>
                 ) : (
                   // Available lessons are clickable links
-                  <Link to={`/lesson/${lesson.id}`} className={`lesson-card ${isCompleted ? 'completed' : 'available'}`}>
+                  <Link to={`/lesson/${lesson.slug}`} className={`lesson-card ${isCompleted ? 'completed' : 'available'}`}>
                     <div className="lesson-status-badge">
                       {isCompleted ? (
                         <span className="check-icon">✓</span>

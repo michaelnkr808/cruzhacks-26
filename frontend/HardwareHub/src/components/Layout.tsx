@@ -1,4 +1,5 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import './Layout.css';
 
 /**
@@ -12,6 +13,13 @@ import './Layout.css';
  */
 function Layout() {
   const location = useLocation();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  
+  // Check login status on mount and when location changes
+  useEffect(() => {
+    const user = localStorage.getItem('hardwareHubUser');
+    setIsLoggedIn(!!user);
+  }, [location]);
   
   // Helper function to check if a link is active
   const isActive = (path: string) => location.pathname === path;
@@ -57,13 +65,13 @@ function Layout() {
             </Link>
           </nav>
 
-          {/* Right side - Profile */}
+          {/* Right side - Profile/Sign Up */}
           <div className="header-right">
-            <Link to="/profile" className="profile-button">
+            <Link to={isLoggedIn ? "/profile" : "/signup"} className="profile-button">
               <div className="avatar">
-                <span>👤</span>
+                <span>{isLoggedIn ? '👤' : '✦'}</span>
               </div>
-              <span className="profile-text">Profile</span>
+              <span className="profile-text">{isLoggedIn ? 'Profile' : 'Sign Up'}</span>
             </Link>
           </div>
         </div>

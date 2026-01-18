@@ -2,13 +2,18 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import { prettyJSON } from 'hono/pretty-json';
+import { serve } from '@hono/node-server';
+import { authMiddleware } from './middleware/auth';
 
 // Import routes
+import authRoutes from './routes/auth';
 import lessonsRoutes from './routes/lessons';
 import progressRoutes from './routes/progress';
 import notesRoutes from './routes/notes';
 import usersRoutes from './routes/users';
 import projectsRoutes from './routes/projects';
+import quizRoutes from './routes/quiz';
+import achievementsRoutes from './routes/achievements';
 
 // Create Hono app
 const app = new Hono();
@@ -17,10 +22,9 @@ const app = new Hono();
 app.use('*', logger());
 app.use('*', prettyJSON());
 app.use('*', cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
-  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  origin: '*',
+  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowHeaders: ['Content-Type', 'Authorization'],
-  credentials: true,
 }));
 
 // Health check
@@ -34,11 +38,25 @@ app.get('/', (c) => {
 });
 
 // API Routes
+app.route('/api/auth', authRoutes);
+
+// Protected routes (require authentication)
+app.use('/api/progress/*', authMiddleware);
+app.use('/api/notes/*', authMiddleware);
+app.use('/api/users/*', authMiddleware);
+app.use('/api/projects/*', authMiddleware);
+app.use('/api/achievements/*', authMiddleware);
+
+// Some lessons might be public, others protected
+app.use('/api/lessons/protected/*', authMiddleware);
+
 app.route('/api/lessons', lessonsRoutes);
 app.route('/api/progress', progressRoutes);
 app.route('/api/notes', notesRoutes);
 app.route('/api/users', usersRoutes);
 app.route('/api/projects', projectsRoutes);
+app.route('/api/quiz', quizRoutes);
+app.route('/api/achievements', achievementsRoutes);
 
 // 404 handler
 app.notFound((c) => {
@@ -54,11 +72,17 @@ app.onError((err, c) => {
   }, 500);
 });
 
-// Start server
+// Start server for Node.js
 const port = parseInt(process.env.PORT || '3000');
+<<<<<<< HEAD
 console.log(`Server starting on http://localhost:${port}`);
+=======
+>>>>>>> 008fa3613a23683cb3b485925efe6dfd4e4daddc
 
-export default {
-  port,
+serve({
   fetch: app.fetch,
-};
+  port,
+  hostname: '0.0.0.0'
+}, (info) => {
+  console.log(`🚀 Server running on http://0.0.0.0:${info.port}`);
+});

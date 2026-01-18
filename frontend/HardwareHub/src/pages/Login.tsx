@@ -1,146 +1,123 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { syncProgressWithBackend } from '../data/lessonData';
 import './Login.css';
 
 /**
- * Login Page Component
+ * Login Page Component - Password + OTP 2FA Authentication
  * 
  * KEY LEARNING CONCEPTS:
  * 
- * 1. AUTHENTICATION: Verifying user credentials
- * 2. LOCAL STORAGE: Reading persisted user data
+ * 1. TWO-FACTOR AUTH: Password + verification code
+ * 2. TWO-STEP FLOW: Verify password → Send OTP → Verify OTP
  * 3. FORM VALIDATION: Checking input before submission
  * 4. ERROR HANDLING: Providing feedback for failed login
  * 5. NAVIGATION: Redirecting after successful login
- * 
- * Real-world pattern:
- * In production apps, authentication would involve:
- * - Sending credentials to a backend API
- * - Receiving a JWT token or session cookie
- * - Storing auth token securely
- * 
- * For this prototype, we're using localStorage to simulate authentication.
  */
 
-interface LoginFormData {
-    email: string;
-    password: string;
-}
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+type LoginStep = 'credentials' | 'otp';
 
 function Login() {
-    // useNavigate hook for redirecting after login
     const navigate = useNavigate();
 
-    // Form state - stores email and password
-    const [formData, setFormData] = useState<LoginFormData>({
-        email: '',
-        password: ''
-    });
+    // Current step in login flow
+    const [step, setStep] = useState<LoginStep>('credentials');
 
-    // Error state for validation and authentication errors
+    // Form state
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [otp, setOtp] = useState('');
+
+    // Error and loading states
     const [error, setError] = useState('');
-
-    // Loading state during authentication
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     /**
-     * Handle input changes
-     * Updates form state as user types
+     * Step 1: Verify password and request OTP
      */
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: value
-        }));
-    };
+    const handleRequestOTP = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError('');
 
-    /**
-     * Validate form data
-     * Check that all required fields are filled and properly formatted
-     */
-    const validateForm = (): boolean => {
-        if (!formData.email || !formData.password) {
-            setError('Please fill in all fields');
-            return false;
-        }
-
-        // Basic email validation
+        // Validate email
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(formData.email)) {
+        if (!email || !emailRegex.test(email)) {
             setError('Please enter a valid email address');
-            return false;
+            return;
         }
 
-        return true;
-    };
-
-    /**
-     * Authenticate user
-     * 
-     * In a real app, this would:
-     * 1. Send credentials to backend API
-     * 2. Backend verifies password hash
-     * 3. Backend returns JWT token
-     * 4. Frontend stores token and redirects
-     * 
-     * For now, we're checking against localStorage
-     * This simulates authentication for prototype purposes
-     */
-    const authenticateUser = (): boolean => {
-        // Get stored user data from localStorage
-        const storedUserData = localStorage.getItem('hardwareHubUser');
-
-        if (!storedUserData) {
-            setError('No account found with this email. Please sign up first.');
-            return false;
-        }
-
-        try {
-            const user = JSON.parse(storedUserData);
-
-            // Check if email matches
-            if (user.email !== formData.email) {
-                setError('Invalid email or password');
-                return false;
-            }
-
-            // In a real app, we'd verify a hashed password
-            // For prototype, we're just checking localStorage
-            // Note: The signup page doesn't actually store the password (good practice!)
-            // So we'll just verify the email exists
-
-            return true;
-        } catch (e) {
-            setError('An error occurred. Please try again.');
-            return false;
-        }
-    };
-
-    /**
-     * Handle form submission
-     * Validate inputs and authenticate user
-     */
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault(); // Prevent page reload
-        setError(''); // Clear previous errors
-
-        // Validate form
-        if (!validateForm()) {
+        if (!password || password.length < 6) {
+            setError('Please enter your password');
             return;
         }
 
         setIsSubmitting(true);
 
-        // Simulate network delay (remove in production)
-        setTimeout(() => {
-            // Authenticate user
-            if (authenticateUser()) {
-                // Success! Redirect to learning page
-                navigate('/learning');
+        try {
+            const response = await fetch(`${API_URL}/api/auth/login/request`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password }),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Invalid credentials');
             }
+
+            // Move to OTP verification step
+            setStep('otp');
+        } catch (err: any) {
+            setError(err.message || 'Failed to login. Please try again.');
+        } finally {
             setIsSubmitting(false);
-        }, 800);
+        }
+    };
+
+    /**
+     * Step 2: Verify OTP and complete login
+     */
+    const handleVerifyOTP = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError('');
+
+        if (!otp || otp.length !== 6) {
+            setError('Please enter the 6-digit code');
+            return;
+        }
+
+        setIsSubmitting(true);
+
+        try {
+            const response = await fetch(`${API_URL}/api/auth/login/verify`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, otp }),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Invalid verification code');
+            }
+
+            // Store user data and token
+            localStorage.setItem('hardwareHubUser', JSON.stringify(data.user));
+            localStorage.setItem('authToken', data.token);
+
+            // Sync progress from backend
+            await syncProgressWithBackend();
+
+            // Redirect to learning page
+            navigate('/learning');
+        } catch (err: any) {
+            setError(err.message || 'Failed to verify code. Please try again.');
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
@@ -151,55 +128,102 @@ function Login() {
                     <p>Log in to continue your embedded programming journey</p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="login-form">
-                    <div className="form-section">
-                        <div className="form-group">
-                            <label htmlFor="email">Email Address</label>
-                            <input
-                                type="email"
-                                id="email"
-                                name="email"
-                                value={formData.email}
-                                onChange={handleChange}
-                                placeholder="your.email@example.com"
-                                required
-                            />
+                {step === 'credentials' ? (
+                    <form onSubmit={handleRequestOTP} className="login-form">
+                        <div className="form-section">
+                            <div className="form-group">
+                                <label htmlFor="email">Email Address</label>
+                                <input
+                                    type="email"
+                                    id="email"
+                                    name="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    placeholder="your.email@example.com"
+                                    required
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label htmlFor="password">Password</label>
+                                <input
+                                    type="password"
+                                    id="password"
+                                    name="password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    placeholder="Enter your password"
+                                    required
+                                />
+                            </div>
                         </div>
 
-                        <div className="form-group">
-                            <label htmlFor="password">Password</label>
-                            <input
-                                type="password"
-                                id="password"
-                                name="password"
-                                value={formData.password}
-                                onChange={handleChange}
-                                placeholder="Enter your password"
-                                required
-                            />
+                        {error && (
+                            <div className="error-message">
+                                ⚠ {error}
+                            </div>
+                        )}
+
+                        <button
+                            type="submit"
+                            className="submit-button"
+                            disabled={isSubmitting}
+                        >
+                            {isSubmitting ? 'Verifying...' : 'Continue'}
+                        </button>
+
+                        <p className="signup-link">
+                            Don't have an account? <a href="/signup">Sign up</a>
+                        </p>
+                    </form>
+                ) : (
+                    <form onSubmit={handleVerifyOTP} className="login-form">
+                        <div className="form-section">
+                            <p className="otp-info">
+                                We sent a 6-digit code to <strong>{email}</strong>
+                            </p>
+                            <div className="form-group">
+                                <label htmlFor="otp">Enter Verification Code</label>
+                                <input
+                                    type="text"
+                                    id="otp"
+                                    name="otp"
+                                    value={otp}
+                                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                    placeholder="123456"
+                                    maxLength={6}
+                                    required
+                                    autoFocus
+                                />
+                            </div>
                         </div>
-                    </div>
 
-                    {/* Error Message */}
-                    {error && (
-                        <div className="error-message">
-                            ⚠ {error}
-                        </div>
-                    )}
+                        {error && (
+                            <div className="error-message">
+                                ⚠ {error}
+                            </div>
+                        )}
 
-                    {/* Submit Button */}
-                    <button
-                        type="submit"
-                        className="submit-button"
-                        disabled={isSubmitting}
-                    >
-                        {isSubmitting ? 'Logging In...' : 'Log In'}
-                    </button>
+                        <button
+                            type="submit"
+                            className="submit-button"
+                            disabled={isSubmitting}
+                        >
+                            {isSubmitting ? 'Verifying...' : 'Log In'}
+                        </button>
 
-                    <p className="signup-link">
-                        Don't have an account? <a href="/signup">Sign up</a>
-                    </p>
-                </form>
+                        <button
+                            type="button"
+                            className="back-button"
+                            onClick={() => {
+                                setStep('credentials');
+                                setOtp('');
+                                setError('');
+                            }}
+                        >
+                            ← Back
+                        </button>
+                    </form>
+                )}
             </div>
         </div>
     );

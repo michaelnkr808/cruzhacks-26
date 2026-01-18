@@ -61,9 +61,15 @@
 }
 
 .logo-icon {
-  font-size: 2rem;
+  font-size: 1.75rem;
   filter: drop-shadow(0 0 10px var(--accent-green));
   transition: filter 0.3s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  vertical-align: middle;
+  margin-top: -2px;
 }
 
 .logo-text {
@@ -168,6 +174,22 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 1px;
+}
+
+/* Sign Out Button */
+.signout-button {
+  background: #ff6b6b;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  margin-left: 12px;
+}
+
+.signout-button:hover {
+  background: #ff5252;
 }
 
 /* Main Content Area */

@@ -421,7 +421,7 @@
 .notes-textarea {
   flex: 1;
   width: 100%;
-  min-height: 400px;
+  min-height: 300px;
   padding: 1rem;
   border: 2px solid rgba(0, 255, 135, 0.3);
   border-radius: 10px;
@@ -479,6 +479,211 @@
 .save-notes-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 0 25px rgba(0, 255, 135, 0.6);
+}
+
+/* Quiz Section in Notes Panel */
+.quiz-section {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 2px solid rgba(0, 255, 135, 0.3);
+}
+
+.quiz-section-header {
+  margin-bottom: 1rem;
+}
+
+.quiz-section-header h4 {
+  color: #00ff87;
+  font-size: 1rem;
+  margin: 0 0 0.25rem 0;
+  font-family: 'Courier New', monospace;
+}
+
+.quiz-section-header small {
+  color: #64ffda;
+  font-size: 0.75rem;
+}
+
+.quiz-score-display {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: rgba(0, 255, 135, 0.1);
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  font-family: 'Courier New', monospace;
+}
+
+.quiz-score-display .score-label {
+  color: #8892b0;
+  font-size: 0.85rem;
+}
+
+.quiz-score-display .score-value {
+  color: #00ff87;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.quiz-score-display .score-percent {
+  color: #64ffda;
+  font-size: 0.85rem;
+}
+
+.take-quiz-btn {
+  width: 100%;
+  padding: 1rem;
+  background: linear-gradient(135deg, #00ff87 0%, #64ffda 100%);
+  color: #0a0e27;
+  border: none;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-family: 'Courier New', monospace;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  box-shadow: 0 0 20px rgba(0, 255, 135, 0.3);
+}
+
+.take-quiz-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 0 35px rgba(0, 255, 135, 0.6);
+}
+
+.quiz-hint {
+  margin-top: 0.75rem;
+  font-size: 0.75rem;
+  color: #8892b0;
+  text-align: center;
+}
+
+/* Panel Tabs */
+.panel-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 1rem;
+  border-bottom: 2px solid rgba(0, 255, 135, 0.2);
+}
+
+.panel-tab {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  background: transparent;
+  border: none;
+  color: #8892b0;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.panel-tab:hover {
+  color: #64ffda;
+  background: rgba(0, 255, 135, 0.05);
+}
+
+.panel-tab.active {
+  color: #00ff87;
+}
+
+.panel-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #00ff87;
+}
+
+.panel-tab.required {
+  color: #ffc107;
+}
+
+.panel-tab.passed {
+  color: #00ff87;
+}
+
+.required-badge {
+  display: inline-block;
+  font-size: 0.65rem;
+  background: rgba(255, 193, 7, 0.2);
+  color: #ffc107;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  margin-left: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Quiz Tab Content */
+.quiz-tab-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+/* Quiz Prompt in Notes Tab */
+.quiz-prompt {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background: rgba(255, 193, 7, 0.1);
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  border-radius: 8px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.quiz-prompt p {
+  color: #ffc107;
+  margin: 0 0 0.5rem 0;
+  font-size: 0.85rem;
+}
+
+.quiz-prompt .take-quiz-btn {
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+}
+
+/* Quiz Required Notice */
+.quiz-required-notice {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  margin-top: 1rem;
+  background: rgba(255, 193, 7, 0.1);
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  border-radius: 10px;
+}
+
+.quiz-required-notice .notice-icon {
+  color: #ffc107;
+  font-size: 1.25rem;
+}
+
+.quiz-required-notice p {
+  color: #ffc107;
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+/* Locked Button State */
+.nav-btn.locked {
+  background: rgba(255, 193, 7, 0.1) !important;
+  border-color: rgba(255, 193, 7, 0.5) !important;
+  color: #ffc107 !important;
+}
+
+.nav-btn.locked:hover {
+  background: rgba(255, 193, 7, 0.2) !important;
+  box-shadow: 0 0 20px rgba(255, 193, 7, 0.3) !important;
 }
 
 /* Error Message Styling */

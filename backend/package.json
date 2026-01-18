@@ -4,18 +4,36 @@
   "type": "module",
   "scripts": {
     "dev": "bun run --watch src/index.ts",
-    "start": "bun run src/index.ts",
+    "dev:node": "npx tsx --watch src/index.ts",
+    "start": "node --experimental-specifier-resolution=node --import tsx src/index.ts",
+    "build": "tsc",
+    "build:vercel": "esbuild src/vercel.ts --bundle --platform=node --target=node20 --outfile=api/index.mjs --format=esm --banner:js=\"import { createRequire } from 'module'; const require = createRequire(import.meta.url);\"",
     "db:generate": "supabase gen types typescript --local > src/types/database.types.ts"
   },
   "dependencies": {
-    "@hono/node-server": "^1.8.2",
+    "@hono/node-server": "^1.13.7",
+    "@metaplex-foundation/js": "^0.20.1",
+    "@opennote-ed/sdk": "^2.3.3",
+    "@solana/web3.js": "^1.98.4",
     "@supabase/supabase-js": "^2.90.1",
+    "auth0": "^5.2.0",
     "dotenv": "^16.3.1",
     "hono": "^4.0.0"
     
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "bun-types": "latest"
+    "@types/node": "^20.0.0",
+    "bun-types": "latest",
+    "esbuild": "^0.20.2",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "vite": {
+    "define": {
+      "process.env.VITE_API_URL": "\"https://embedpath-backend.onrender.com\""
+    }
   }
 }

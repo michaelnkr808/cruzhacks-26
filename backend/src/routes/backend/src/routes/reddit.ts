@@ -1,12 +1,12 @@
 import { Router } from 'express';
-import { supabase } from '../lib/supabase'; // Using your existing supabase client
+import { supabase } from '../lib/supabase'; // Using existing supabase client
 
 const router = Router();
 
 // GET /api/reddit - Fetches filtered help posts
 router.get('/', async (req, res) => {
   const { data, error } = await supabase
-    .from('reddit_posts') // This must match the table name in your dashboard
+    .from('reddit_posts') 
     .select('*')
     .order('created_at', { ascending: false });
 

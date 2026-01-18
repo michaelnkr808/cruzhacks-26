@@ -25,3 +25,5 @@ dist-ssr
 *.sw?
 
 .env
+.add_progress.sh
+add_progress.sh
