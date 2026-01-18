@@ -47,8 +47,7 @@ function Quiz({ lessonTitle, lessonSlug, lessonContent, userNotes, onClose, onCo
   // Generate quiz when component mounts
   useEffect(() => {
     onStart?.(); // Notify parent that quiz has started
-    generateQuiz();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    generateQuiz(); 
   }, []);
 
   const generateQuiz = async () => {
@@ -100,7 +99,7 @@ function Quiz({ lessonTitle, lessonSlug, lessonContent, userNotes, onClose, onCo
   };
 
   const selectAnswer = (index: number) => {
-    if (showExplanation) return; // Can't change after submitting
+    if (showExplanation) return; 
     setSelectedAnswer(index);
   };
 
