@@ -1,7 +1,17 @@
 import { Hono } from 'hono';
-import { OpennoteClient, PracticeProblem, PracticeProblemSetStatusResponse, GradeFRQResponse } from '@opennote-ed/sdk';
+import type { PracticeProblem, PracticeProblemSetStatusResponse, GradeFRQResponse } from '@opennote-ed/sdk';
 
 const app = new Hono();
+
+// Lazy-load OpenNote SDK to avoid ESM issues on Vercel
+let OpennoteClientClass: any = null;
+async function getOpennoteClient(apiKey: string) {
+  if (!OpennoteClientClass) {
+    const sdk = await import('@opennote-ed/sdk');
+    OpennoteClientClass = sdk.OpennoteClient;
+  }
+  return new OpennoteClientClass({ api_key: apiKey });
+}
 
 /**
  * Quiz Generation API
@@ -48,8 +58,8 @@ app.post('/generate', async (c) => {
       return c.json({ questions: demoQuestions });
     }
 
-    // Initialize OpenNote client
-    const client = new OpennoteClient({ api_key: OPENNOTE_API_KEY });
+    // Initialize OpenNote client (lazy-loaded)
+    const client = await getOpennoteClient(OPENNOTE_API_KEY);
 
     // Build a descriptive prompt for practice problems
     const problemDescription = buildProblemDescription(lessonTitle, lessonContent, userNotes);
