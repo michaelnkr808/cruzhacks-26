@@ -324,6 +324,7 @@ export const lessons: Lesson[] = [
     duration: "15 min",
     status: 'available',
     category: 'foundation',
+    path: 'ifmagic',
     requiredLevel: 'beginner',
     content: {
       overview: "Master the basics of connecting and configuring IF MAGIC modules.",
@@ -364,6 +365,7 @@ export const lessons: Lesson[] = [
     duration: "20 min",
     status: 'available',
     category: 'sensor',
+    path: 'ifmagic',
     module: 'Button',
     requiredLevel: 'beginner',
     content: {
@@ -404,6 +406,7 @@ export const lessons: Lesson[] = [
     duration: "25 min",
     status: 'locked',
     category: 'sensor',
+    path: 'ifmagic',
     module: 'Slider',
     requiredLevel: 'beginner',
     content: {
@@ -443,6 +446,7 @@ export const lessons: Lesson[] = [
     duration: "25 min",
     status: 'locked',
     category: 'sensor',
+    path: 'ifmagic',
     module: 'Dial',
     requiredLevel: 'beginner',
     content: {
@@ -482,6 +486,7 @@ export const lessons: Lesson[] = [
     duration: "30 min",
     status: 'locked',
     category: 'sensor',
+    path: 'ifmagic',
     module: 'Joystick',
     requiredLevel: 'beginner',
     content: {
@@ -518,6 +523,7 @@ export const lessons: Lesson[] = [
     duration: "25 min",
     status: 'locked',
     category: 'sensor',
+    path: 'ifmagic',
     module: 'Distance',
     requiredLevel: 'intermediate',
     content: {
@@ -553,6 +559,7 @@ export const lessons: Lesson[] = [
     duration: "25 min",
     status: 'locked',
     category: 'sensor',
+    path: 'ifmagic',
     module: 'Proximity',
     requiredLevel: 'intermediate',
     content: {
@@ -588,6 +595,7 @@ export const lessons: Lesson[] = [
     duration: "20 min",
     status: 'locked',
     category: 'sensor',
+    path: 'ifmagic',
     module: 'Light',
     requiredLevel: 'beginner',
     content: {
@@ -623,6 +631,7 @@ export const lessons: Lesson[] = [
     duration: "30 min",
     status: 'locked',
     category: 'sensor',
+    path: 'ifmagic',
     module: 'Color',
     requiredLevel: 'intermediate', // Advanced color analysis requires intermediate
     content: {
@@ -659,6 +668,7 @@ export const lessons: Lesson[] = [
     duration: "25 min",
     status: 'locked',
     category: 'sensor',
+    path: 'ifmagic',
     module: 'Sound',
     requiredLevel: 'beginner',
     content: {
@@ -694,6 +704,7 @@ export const lessons: Lesson[] = [
     duration: "30 min",
     status: 'locked',
     category: 'sensor',
+    path: 'ifmagic',
     module: 'Motion',
     requiredLevel: 'intermediate',
     content: {
@@ -733,6 +744,7 @@ export const lessons: Lesson[] = [
     duration: "30 min",
     status: 'locked',
     category: 'sensor',
+    path: 'ifmagic',
     module: 'Gesture',
     requiredLevel: 'advanced',
     content: {
@@ -768,6 +780,7 @@ export const lessons: Lesson[] = [
     duration: "25 min",
     status: 'locked',
     category: 'sensor',
+    path: 'ifmagic',
     module: 'Flex',
     requiredLevel: 'intermediate',
     content: {
@@ -803,6 +816,7 @@ export const lessons: Lesson[] = [
     duration: "25 min",
     status: 'locked',
     category: 'sensor',
+    path: 'ifmagic',
     module: 'Force',
     requiredLevel: 'intermediate',
     content: {
@@ -838,6 +852,7 @@ export const lessons: Lesson[] = [
     duration: "25 min",
     status: 'locked',
     category: 'sensor',
+    path: 'ifmagic',
     module: 'Environment',
     requiredLevel: 'advanced',
     content: {
@@ -873,6 +888,7 @@ export const lessons: Lesson[] = [
     duration: "20 min",
     status: 'locked',
     category: 'sensor',
+    path: 'ifmagic',
     module: 'Thermal',
     requiredLevel: 'advanced',
     content: {
@@ -908,6 +924,7 @@ export const lessons: Lesson[] = [
     duration: "25 min",
     status: 'locked',
     category: 'sensor',
+    path: 'ifmagic',
     module: 'Spin',
     requiredLevel: 'intermediate',
     content: {
@@ -943,6 +960,7 @@ export const lessons: Lesson[] = [
     duration: "25 min",
     status: 'locked',
     category: 'sensor',
+    path: 'ifmagic',
     module: 'Move',
     requiredLevel: 'intermediate',
     content: {
@@ -978,6 +996,7 @@ export const lessons: Lesson[] = [
     duration: "20 min",
     status: 'locked',
     category: 'sensor',
+    path: 'ifmagic',
     module: 'Digital',
     requiredLevel: 'intermediate',
     content: {
@@ -1015,6 +1034,7 @@ export const lessons: Lesson[] = [
     duration: "20 min",
     status: 'locked',
     category: 'output',
+    path: 'ifmagic',
     module: 'Glow',
     requiredLevel: 'beginner',
     content: {
@@ -1050,6 +1070,7 @@ export const lessons: Lesson[] = [
     duration: "25 min",
     status: 'locked',
     category: 'output',
+    path: 'ifmagic',
     module: 'Tone',
     requiredLevel: 'beginner',
     content: {
@@ -1091,6 +1112,7 @@ export const lessons: Lesson[] = [
     duration: "30 min",
     status: 'locked',
     category: 'advanced',
+    path: 'ifmagic',
     requiredLevel: 'intermediate',
     content: {
       overview: "Equations are the brain of IF MAGIC - learn to connect inputs to outputs with logic.",
@@ -1129,6 +1151,7 @@ export const lessons: Lesson[] = [
     duration: "35 min",
     status: 'locked',
     category: 'advanced',
+    path: 'ifmagic',
     requiredLevel: 'intermediate',
     content: {
       overview: "Learn to orchestrate multiple modules working together for sophisticated interactions.",
@@ -1163,6 +1186,7 @@ export const lessons: Lesson[] = [
     duration: "30 min",
     status: 'locked',
     category: 'advanced',
+    path: 'ifmagic',
     requiredLevel: 'advanced',
     content: {
       overview: "Learn to detect movement, tilting, and gestures using the built-in IMU (Inertial Measurement Unit).",
@@ -1205,6 +1229,7 @@ export const lessons: Lesson[] = [
     duration: "40 min",
     status: 'locked',
     category: 'advanced',
+    path: 'ifmagic',
     requiredLevel: 'advanced',
     content: {
       overview: "Move beyond the app - control your hardware with code using the IF MAGIC API.",
@@ -1247,6 +1272,7 @@ export const lessons: Lesson[] = [
     duration: "60 min",
     status: 'locked',
     category: 'advanced',
+    path: 'ifmagic',
     requiredLevel: 'advanced',
     content: {
       overview: "Time to create! Use multiple modules, equations, and everything you've learned to build something unique.",
@@ -1480,6 +1506,26 @@ const checkAndUpdatePathCompletion = (pathId: string, completedLessonIds: number
     }
   }
   return false;
+};
+
+/**
+ * Check all paths for completion status (call on app load to fix any missed unlocks)
+ */
+export const recheckAllPathCompletions = (): void => {
+  const completed = getCompletedLessons();
+  const paths = ['getting-started', 'ifmagic'];
+  
+  console.log('[Recheck] Checking all path completions...');
+  console.log('[Recheck] Completed lessons:', completed);
+  
+  paths.forEach(pathId => {
+    const unlocked = checkAndUpdatePathCompletion(pathId, completed);
+    if (unlocked) {
+      window.dispatchEvent(new CustomEvent('pathUnlocked', { 
+        detail: { pathId } 
+      }));
+    }
+  });
 };
 
 interface ProgressRecord {

@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { recheckAllPathCompletions } from '../data/lessonData';
 import './LearningPaths.css';
 
 /**
@@ -92,12 +93,27 @@ function LearningPaths() {
   const [gettingStartedComplete, setGettingStartedComplete] = useState(false);
 
   useEffect(() => {
+    // Recheck all path completions in case any were missed
+    recheckAllPathCompletions();
+    
     // Check if Getting Started path is complete
-    const completedPaths = localStorage.getItem('completedPaths');
-    if (completedPaths) {
-      const paths = JSON.parse(completedPaths);
-      setGettingStartedComplete(paths.includes('getting-started'));
-    }
+    const checkCompletion = () => {
+      const completedPaths = localStorage.getItem('completedPaths');
+      if (completedPaths) {
+        const paths = JSON.parse(completedPaths);
+        setGettingStartedComplete(paths.includes('getting-started'));
+      }
+    };
+    
+    checkCompletion();
+    
+    // Listen for path unlock events
+    const handlePathUnlocked = () => {
+      checkCompletion();
+    };
+    
+    window.addEventListener('pathUnlocked', handlePathUnlocked);
+    return () => window.removeEventListener('pathUnlocked', handlePathUnlocked);
   }, []);
 
   const getDifficultyColor = (difficulty: string) => {
