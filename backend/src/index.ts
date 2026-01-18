@@ -2,8 +2,10 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import { prettyJSON } from 'hono/pretty-json';
+import { authMiddleware } from './middleware/auth';
 
 // Import routes
+import authRoutes from './routes/auth';
 import lessonsRoutes from './routes/lessons';
 import progressRoutes from './routes/progress';
 import notesRoutes from './routes/notes';
@@ -17,10 +19,9 @@ const app = new Hono();
 app.use('*', logger());
 app.use('*', prettyJSON());
 app.use('*', cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
-  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  origin: '*',
+  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowHeaders: ['Content-Type', 'Authorization'],
-  credentials: true,
 }));
 
 // Health check
@@ -34,6 +35,17 @@ app.get('/', (c) => {
 });
 
 // API Routes
+app.route('/api/auth', authRoutes);
+
+// Protected routes (require authentication)
+app.use('/api/progress/*', authMiddleware);
+app.use('/api/notes/*', authMiddleware);
+app.use('/api/users/*', authMiddleware);
+app.use('/api/projects/*', authMiddleware);
+
+// Some lessons might be public, others protected
+app.use('/api/lessons/protected/*', authMiddleware);
+
 app.route('/api/lessons', lessonsRoutes);
 app.route('/api/progress', progressRoutes);
 app.route('/api/notes', notesRoutes);

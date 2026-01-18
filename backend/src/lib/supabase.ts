@@ -1,16 +1,20 @@
 import { createClient } from '@supabase/supabase-js';
-import type { Database } from '../types/database.types';
 
 const supabaseUrl = process.env.SUPABASE_URL || '';
-const supabaseKey = process.env.SUPABASE_ANON_KEY || '';
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
-if (!supabaseUrl || !supabaseKey) {
-  throw new Error('Missing Supabase environment variables');
+console.log('Loading Supabase...');
+console.log('URL:', supabaseUrl);
+console.log('Service Role Key exists:', supabaseServiceRoleKey.length > 0);
+
+if (!supabaseUrl || !supabaseServiceRoleKey) {
+  throw new Error(`Missing Supabase env vars. URL: ${!!supabaseUrl}, Service Role Key: ${!!supabaseServiceRoleKey}`);
 }
 
-// Create Supabase client
-export const supabase = createClient<Database>(supabaseUrl, supabaseKey);
-
-// Create Supabase admin client (with service role key for admin operations)
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-export const supabaseAdmin = createClient<Database>(supabaseUrl, supabaseServiceKey);
+// Use service role key for admin operations (creating users in Auth)
+export const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false
+  }
+});

@@ -3,6 +3,29 @@ import { supabase } from '../lib/supabase';
 
 const app = new Hono();
 
+// Get all projects for current user (uses userId from auth middleware)
+app.get('/', async (c) => {
+  try {
+    const userId = c.get('userId');
+    
+    if (!userId) {
+      return c.json({ projects: [] });
+    }
+    
+    const { data, error } = await supabase
+      .from('projects')
+      .select('*')
+      .eq('user_id', userId)
+      .order('updated_at', { ascending: false });
+
+    if (error) throw error;
+
+    return c.json({ projects: data || [] });
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500);
+  }
+});
+
 // Get all projects for a user
 app.get('/user/:userId', async (c) => {
   try {

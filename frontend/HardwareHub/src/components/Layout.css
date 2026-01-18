@@ -170,6 +170,22 @@
   letter-spacing: 1px;
 }
 
+/* Sign Out Button */
+.signout-button {
+  background: #ff6b6b;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  margin-left: 12px;
+}
+
+.signout-button:hover {
+  background: #ff5252;
+}
+
 /* Main Content Area */
 .main-content {
   flex: 1;

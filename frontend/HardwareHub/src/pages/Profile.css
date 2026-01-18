@@ -69,6 +69,12 @@
   font-family: 'Courier New', monospace;
 }
 
+.profile-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
 .edit-profile-btn {
   padding: 1rem 2rem;
   background: linear-gradient(135deg, #00ff87 0%, #64ffda 100%);
@@ -87,6 +93,26 @@
 .edit-profile-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 0 30px rgba(0, 255, 135, 0.6);
+}
+
+.sign-out-btn {
+  padding: 0.75rem 1.5rem;
+  background: transparent;
+  color: #ff6b6b;
+  border: 2px solid #ff6b6b;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-family: 'Courier New', monospace;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.sign-out-btn:hover {
+  background: rgba(255, 107, 107, 0.2);
+  box-shadow: 0 0 20px rgba(255, 107, 107, 0.4);
+  transform: translateY(-2px);
 }
 
 /* Stats Grid */

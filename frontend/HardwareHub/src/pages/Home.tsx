@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import './Home.css';
 
 /**
@@ -10,6 +11,13 @@ import './Home.css';
  * - About content integrated into the home page
  */
 function Home() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const user = localStorage.getItem('user');
+    setIsLoggedIn(!!user);
+  }, []);
+
   return (
     <div className="home">
       {/* Hero Section with Circuit Connections */}
@@ -23,7 +31,7 @@ function Home() {
             and a structured learning path designed for beginners.
           </p>
           <div className="hero-actions">
-            <Link to="/signup" className="cta-button primary">
+            <Link to={isLoggedIn ? "/learning" : "/signup"} className="cta-button primary">
               Start Learning
               <span className="arrow">→</span>
             </Link>

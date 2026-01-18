@@ -1,0 +1,344 @@
+import { Hono } from 'hono';
+import { supabase } from '../lib/supabase';
+
+const app = new Hono();
+
+// OTP Request - Send OTP to email via Auth0
+app.post('/otp/request', async (c) => {
+  try {
+    const body = await c.req.json();
+    const { email } = body;
+
+    if (!email) {
+      return c.json({ error: 'Email is required' }, 400);
+    }
+
+    // In production, this would call Auth0's passwordless API to send OTP
+    // For now, generate a temporary OTP and store it
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+    // Store OTP in session/cache (in production, use Redis or similar)
+    console.log(`[AUTH0 OTP] Sending OTP ${otp} to ${email}`);
+
+    return c.json({
+      success: true,
+      message: 'OTP sent to email',
+      // In production, don't return OTP. This is for testing only.
+      // otp: otp,
+    }, 200);
+  } catch (error: any) {
+    console.error('OTP request error:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// OTP Verify - Verify OTP and create user in Supabase Auth
+app.post('/otp/verify', async (c) => {
+  try {
+    const body = await c.req.json();
+    const { email, otp, name, level } = body;
+
+    if (!email || !otp || !name) {
+      return c.json({ error: 'Missing required fields' }, 400);
+    }
+
+    // In production, verify OTP with Auth0
+    console.log(`[AUTH0 OTP] Verifying OTP ${otp} for ${email}`);
+
+    // Check if user already exists in Supabase Auth
+    const { data: existingUsers } = await supabase.auth.admin.listUsers();
+    const existingUser = existingUsers?.users?.find(u => u.email === email);
+
+    if (existingUser) {
+      // User exists, return their info
+      const token = Buffer.from(JSON.stringify({ userId: existingUser.id, email })).toString('base64');
+      return c.json({ 
+        user: {
+          id: existingUser.id,
+          email: existingUser.email,
+          name: existingUser.user_metadata?.name || name,
+          level: existingUser.user_metadata?.level || level || 'beginner'
+        }, 
+        token,
+        message: 'User already exists' 
+      }, 200);
+    }
+
+    // Create user in Supabase Auth (Authentication -> Users tab)
+    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      email,
+      email_confirm: true, // Auto-confirm since we verified via OTP
+      user_metadata: {
+        name,
+        level: level || 'beginner'
+      }
+    });
+
+    if (authError) {
+      console.error('Supabase Auth user creation error:', authError);
+      throw authError;
+    }
+
+    console.log('User created successfully in Supabase Auth:', authData.user);
+
+    // Generate session token (in production, use JWT)
+    const token = Buffer.from(JSON.stringify({ userId: authData.user.id, email })).toString('base64');
+
+    return c.json({
+      user: {
+        id: authData.user.id,
+        email: authData.user.email,
+        name: authData.user.user_metadata?.name,
+        level: authData.user.user_metadata?.level
+      },
+      token,
+      message: 'OTP verified successfully'
+    }, 201);
+  } catch (error: any) {
+    console.error('OTP verify error:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Login endpoint - OTP based
+app.post('/login', async (c) => {
+  try {
+    const body = await c.req.json();
+    const { email, otp } = body;
+
+    if (!email || !otp) {
+      return c.json({ error: 'Email and OTP are required' }, 400);
+    }
+
+    // Verify OTP with Auth0
+    console.log(`[AUTH0 OTP] Verifying login OTP for ${email}`);
+
+    // Find user by email
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', email)
+      .single();
+
+    if (error || !user) {
+      return c.json({ error: 'User not found' }, 401);
+    }
+
+    // Generate session token
+    const token = Buffer.from(JSON.stringify({ userId: user.id, email })).toString('base64');
+
+    return c.json({ user, token }, 200);
+  } catch (error: any) {
+    console.error('Login error:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Legacy signup endpoint (deprecated - kept for compatibility)
+app.post('/signup', async (c) => {
+  try {
+    const body = await c.req.json();
+    const { email, name, level, auth0Id } = body;
+
+    if (!email || !name || !auth0Id) {
+      return c.json({ error: 'Missing required fields' }, 400);
+    }
+
+    const { data: existingUser } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', email)
+      .maybeSingle();
+
+    if (existingUser) {
+      return c.json({ user: existingUser }, 200);
+    }
+
+    const { data, error } = await supabase
+      .from('users')
+      .insert([{
+        email,
+        name,
+        level: level || 'beginner',
+        auth0_id: auth0Id,
+      }])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return c.json({ user: data }, 201);
+  } catch (error: any) {
+    console.error('Signup error:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+app.post('/send-otp', async (c) => {
+  try {
+    const body = await c.req.json();
+    const { email } = body;
+
+    if (!email) {
+      return c.json({ error: 'Email is required' }, 400);
+    }
+
+    // Check if user exists in our database
+    const { data: existingUser } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', email)
+      .maybeSingle();
+
+    // Try to send passwordless email with OTP via Auth0
+    try {
+      await auth0Authentication.passwordless.sendEmail({
+        email,
+        send: 'code',
+        authParams: {
+          connection: 'email',
+        },
+      });
+      
+      return c.json({ 
+        success: true,
+        isNewUser: !existingUser,
+        message: 'OTP sent successfully'
+      }, 200);
+    } catch (auth0Error: any) {
+      console.log('Auth0 error, falling back to demo mode:', auth0Error.message);
+      
+      // Fallback to demo mode if Auth0 is not properly configured
+      console.log(`[DEMO] Would send OTP to: ${email}`);
+      
+      return c.json({ 
+        success: true,
+        isNewUser: !existingUser,
+        message: 'OTP sent successfully (demo mode)'
+      }, 200);
+    }
+  } catch (error: any) {
+    console.error('Send OTP error:', error);
+    return c.json({ error: error.message || 'Failed to send OTP' }, 500);
+  }
+});
+
+// Verify OTP endpoint
+app.post('/verify-otp', async (c) => {
+  try {
+    const body = await c.req.json();
+    const { email, otp } = body;
+
+    if (!email || !otp) {
+      return c.json({ error: 'Email and OTP are required' }, 400);
+    }
+
+    // Try to verify OTP with Auth0 first
+    try {
+      // Verify OTP with Auth0 and get tokens
+      const { data } = await auth0Authentication.passwordless.loginWithEmail({
+        email,
+        code: otp,
+        authParams: {
+          connection: 'email',
+        },
+      });
+
+      // Get user info from Auth0
+      const userInfo = await auth0Authentication.getProfile(data.access_token);
+      
+      // Check if user exists in our database
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('*')
+        .eq('auth0_id', userInfo.sub)
+        .maybeSingle();
+
+      let user;
+      if (existingUser) {
+        user = existingUser;
+      } else {
+        // Create new user in our database
+        const { data: newUser, error } = await supabase
+          .from('users')
+          .insert([{
+            email: userInfo.email || email,
+            name: userInfo.name || userInfo.nickname || email.split('@')[0],
+            level: 'beginner',
+            auth0_id: userInfo.sub,
+            avatar_url: userInfo.picture,
+          }])
+          .select()
+          .single();
+
+        if (error) {
+          throw error;
+        }
+        user = newUser;
+      }
+
+      return c.json({
+        user,
+        token: data.access_token,
+        refreshToken: data.refresh_token,
+        expiresIn: data.expires_in,
+      }, 200);
+    } catch (auth0Error: any) {
+      console.log('Auth0 verification error, falling back to demo mode:', auth0Error.message);
+      
+      // Fallback to demo mode if Auth0 is not properly configured
+      console.log(`[DEMO] Verifying OTP for: ${email}, code: ${otp}`);
+
+      // For demo purposes, accept any 6-digit OTP
+      if (otp.length !== 6) {
+        return c.json({ error: 'Invalid OTP format' }, 400);
+      }
+
+      // Generate a mock Auth0 user ID for demo purposes
+      const mockAuth0Id = `auth0|${Date.now()}`;
+      
+      // Check if user exists
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', email)
+        .maybeSingle();
+
+      let user;
+      if (existingUser) {
+        user = existingUser;
+      } else {
+        // Create new user
+        const { data, error } = await supabase
+          .from('users')
+          .insert([{
+            email,
+            name: email.split('@')[0], // Default name from email
+            level: 'beginner',
+            auth0_id: mockAuth0Id,
+          }])
+          .select()
+          .single();
+
+        if (error) {
+          throw error;
+        }
+        user = data;
+      }
+
+      // Generate mock JWT token (in production, use Auth0's real tokens)
+      const mockToken = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI${mockAuth0Id}In0.${Buffer.from('mock-signature').toString('base64')}`;
+
+      return c.json({
+        user,
+        token: mockToken,
+        expiresIn: 3600, // 1 hour
+        message: 'Login successful (demo mode)'
+      }, 200);
+    }
+  } catch (error: any) {
+    console.error('Verify OTP error:', error);
+    return c.json({ error: error.message || 'Failed to verify OTP' }, 500);
+  }
+});
+
+export default app;

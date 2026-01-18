@@ -1,7 +1,9 @@
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { lessons, getCurrentUser, canAccessLesson, getCompletedLessons } from '../data/lessonData';
+import { getCurrentUser, canAccessLesson, getCompletedLessons, lessons as localLessons } from '../data/lessonData';
 import { useEffect, useState } from 'react';
 import './Learning.css';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 /**
  * Learning Track Page - The roadmap/track view for a specific hardware platform
@@ -20,7 +22,9 @@ function Learning() {
   const { pathId } = useParams<{ pathId: string }>();
   const [user, setUser] = useState(getCurrentUser());
   const [completedLessons, setCompletedLessons] = useState<number[]>([]);
-  
+  const [lessons, setLessons] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
   // For now, only IF MAGIC has content. Other paths redirect back.
   useEffect(() => {
     if (pathId && pathId !== 'ifmagic') {
@@ -37,10 +41,37 @@ function Learning() {
     }
   }, [navigate, pathId]);
   
+  useEffect(() => {
+    const fetchLessons = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/lessons`);
+        if (response.ok) {
+          const data = await response.json();
+          // Use API data if available, otherwise fallback to local
+          const apiLessons = data.lessons || [];
+          setLessons(apiLessons.length > 0 ? apiLessons : localLessons);
+        } else {
+          // Fallback to local data if API fails
+          setLessons(localLessons);
+        }
+      } catch (error) {
+        console.error('Failed to fetch lessons, using local data:', error);
+        // Fallback to local data if API fails
+        setLessons(localLessons);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLessons();
+  }, []);
+
   // If no user yet (during redirect), show loading
   if (!user) {
     return <div className="learning"><p>Loading...</p></div>;
   }
+
+  if (loading) return <div>Loading lessons...</div>;
   
   // Calculate progress stats from lesson data
   // This is "derived state" - calculating values from existing data

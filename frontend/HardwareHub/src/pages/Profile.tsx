@@ -1,29 +1,50 @@
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './Profile.css';
 
-/**
- * Profile Page - User account mockup
- * 
- * This is a mockup showing what a user profile might look like.
- * In a real application, this data would come from:
- * - Authentication system (login/signup)
- * - Backend API
- * - Database
- * 
- * For now, we're using mock/dummy data to show the UI concept.
- */
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 function Profile() {
+  const navigate = useNavigate();
+  const [userData, setUserData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  // Mock user data - pretend this came from an API
-  const userData = {
-    name: "Alex Chen",
-    email: "alex.chen@example.com",
-    joinDate: "January 2026",
-    totalLessons: 6,
-    completedLessons: 0,
-    learningStreak: 0,
-    hardwareConnected: true
+  useEffect(() => {
+    const user = localStorage.getItem('hardwareHubUser');
+    if (!user) {
+      navigate('/signup');
+      return;
+    }
+
+    try {
+      const parsedUser = JSON.parse(user);
+      setUserData(parsedUser);
+    } catch (error) {
+      console.error('Failed to parse user data:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [navigate]);
+
+  const handleSignOut = () => {
+    localStorage.removeItem('hardwareHubUser');
+    localStorage.removeItem('authToken');
+    navigate('/');
   };
+
+  // Format member date from either created_at or joinDate
+  const getMemberDate = () => {
+    const dateStr = userData?.created_at || userData?.joinDate;
+    if (!dateStr) return 'Recently';
+    try {
+      return new Date(dateStr).toLocaleDateString();
+    } catch {
+      return 'Recently';
+    }
+  };
+
+  if (loading) return <div>Loading...</div>;
+  if (!userData) return <div>No user data</div>;
 
   return (
     <div className="profile-page">
@@ -36,9 +57,12 @@ function Profile() {
           <div className="profile-info">
             <h1 className="profile-name">{userData.name}</h1>
             <p className="profile-email">{userData.email}</p>
-            <p className="profile-join-date">Member since {userData.joinDate}</p>
+            <p className="profile-join-date">Member since {getMemberDate()}</p>
           </div>
-          <button className="edit-profile-btn">Edit Profile</button>
+          <div className="profile-actions">
+            <button className="edit-profile-btn">Edit Profile</button>
+            <button className="sign-out-btn" onClick={handleSignOut}>Sign Out</button>
+          </div>
         </div>
 
         {/* Stats Grid */}
@@ -46,14 +70,14 @@ function Profile() {
           <div className="stat-card">
             <div className="stat-icon">▣</div>
             <div className="stat-content">
-              <span className="stat-value">{userData.completedLessons}/{userData.totalLessons}</span>
+              <span className="stat-value">{userData.completed_lessons || 0}</span>
               <span className="stat-label">Lessons Completed</span>
             </div>
           </div>
           <div className="stat-card">
             <div className="stat-icon">▲</div>
             <div className="stat-content">
-              <span className="stat-value">{userData.learningStreak} days</span>
+              <span className="stat-value">{userData.learning_streak || 0} days</span>
               <span className="stat-label">Learning Streak</span>
             </div>
           </div>

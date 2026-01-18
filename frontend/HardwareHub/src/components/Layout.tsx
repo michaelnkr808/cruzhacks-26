@@ -1,4 +1,4 @@
-import { Link, Outlet, useLocation } from 'react-router-dom';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import './Layout.css';
 
 /**
@@ -12,9 +12,15 @@ import './Layout.css';
  */
 function Layout() {
   const location = useLocation();
+  const navigate = useNavigate();
   
   // Helper function to check if a link is active
   const isActive = (path: string) => location.pathname === path;
+
+  const handleSignOut = () => {
+    localStorage.removeItem('user');
+    navigate('/');
+  };
 
   return (
     <div className="layout">
