@@ -84,7 +84,6 @@ function Learning() {
   // This is "derived state" - calculating values from existing data
   const completedCount = completedLessons.filter(id => pathLessons.some(l => l.id === id)).length;
   const accessibleLessons = pathLessons.filter(l => canAccessLesson(user.level, l));
-  const availableCount = accessibleLessons.filter(l => !completedLessons.includes(l.id)).length;
   const totalCount = pathLessons.length;
   const progressPercent = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
 

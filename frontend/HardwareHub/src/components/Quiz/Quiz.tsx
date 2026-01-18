@@ -30,11 +30,12 @@ interface QuizProps {
   onClose: () => void;
   onComplete: (score: number, total: number) => void;
   inline?: boolean; // If true, renders inline instead of modal
+  onStart?: () => void; // Called when quiz starts loading
 }
 
 type QuizState = 'loading' | 'ready' | 'active' | 'results' | 'error';
 
-function Quiz({ lessonTitle, lessonSlug, lessonContent, userNotes, onClose, onComplete, inline = false }: QuizProps) {
+function Quiz({ lessonTitle, lessonSlug, lessonContent, userNotes, onClose, onComplete, inline = false, onStart }: QuizProps) {
   const [state, setState] = useState<QuizState>('loading');
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -45,6 +46,7 @@ function Quiz({ lessonTitle, lessonSlug, lessonContent, userNotes, onClose, onCo
 
   // Generate quiz when component mounts
   useEffect(() => {
+    onStart?.(); // Notify parent that quiz has started
     generateQuiz();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -69,11 +71,17 @@ function Quiz({ lessonTitle, lessonSlug, lessonContent, userNotes, onClose, onCo
       });
 
       const data = await response.json();
+      
+      // Log if there's a warning (means fallback to demo questions)
+      if (data.warning) {
+        console.warn('[Quiz] Server warning:', data.warning);
+      }
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to generate quiz');
       }
 
+      console.log(`[Quiz] Received ${data.questions?.length || 0} questions`);
       setQuestions(data.questions);
       setAnswers([]);
       setState('ready');

@@ -1,12 +1,13 @@
 import { Hono } from 'hono';
+import { OpennoteClient, PracticeProblem, PracticeProblemSetStatusResponse, GradeFRQResponse } from '@opennote-ed/sdk';
 
 const app = new Hono();
 
 /**
  * Quiz Generation API
  * 
- * Generates quiz questions from lesson content and user notes using AI.
- * Inspired by OpenNote's approach to personalized learning.
+ * Generates quiz questions from lesson content using OpenNote Practice API.
+ * Creates dynamic, lesson-specific practice problems.
  * 
  * POST /api/quiz/generate
  * Body: { lessonTitle, lessonSlug, lessonContent, userNotes, questionCount }
@@ -21,157 +22,291 @@ interface QuizQuestion {
   explanation: string;
 }
 
-// Generate quiz questions using OpenAI
+// Generate quiz questions using OpenNote Practice API
 app.post('/generate', async (c) => {
+  console.log('[QUIZ] Received generate request');
   try {
     const body = await c.req.json();
     const { lessonTitle, lessonContent, userNotes, questionCount = 5 } = body;
 
+    console.log(`[QUIZ] lessonTitle: "${lessonTitle}"`);
+    console.log(`[QUIZ] lessonContent length: ${lessonContent?.length || 0} chars`);
+    console.log(`[QUIZ] userNotes: ${userNotes?.length || 0} chars`);
+
     if (!lessonTitle || !lessonContent) {
+      console.log('[QUIZ] Missing lessonTitle or lessonContent, returning 400');
       return c.json({ error: 'Lesson title and content are required' }, 400);
     }
 
-    const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+    const OPENNOTE_API_KEY = process.env.OPENNOTE_API_KEY;
+    console.log(`[QUIZ] OpenNote API Key exists: ${!!OPENNOTE_API_KEY}`);
 
-    if (!OPENAI_API_KEY) {
+    if (!OPENNOTE_API_KEY) {
       // Fallback to demo questions if no API key
-      console.log('[QUIZ] No OpenAI API key, using demo questions');
+      console.log('[QUIZ] No OpenNote API key, using demo questions');
       const demoQuestions = generateDemoQuestions(lessonTitle, questionCount);
       return c.json({ questions: demoQuestions });
     }
 
-    // Build the prompt for OpenAI
-    const prompt = buildQuizPrompt(lessonTitle, lessonContent, userNotes, questionCount);
+    // Initialize OpenNote client
+    const client = new OpennoteClient({ api_key: OPENNOTE_API_KEY });
 
-    // Call OpenAI API
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENAI_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: `You are an educational quiz generator for HardwareHub, an embedded programming learning platform. 
-            Generate multiple-choice questions based on lesson content and student notes. 
-            Questions should test understanding, not just memorization.
-            Always respond with valid JSON.`
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        temperature: 0.7,
-        max_tokens: 2000
-      })
-    });
+    // Build a descriptive prompt for practice problems
+    const problemDescription = buildProblemDescription(lessonTitle, lessonContent, userNotes);
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('OpenAI API error:', errorData);
-      throw new Error('Failed to generate quiz from AI');
-    }
+    console.log(`[QUIZ] Generating ${questionCount} questions for "${lessonTitle}" using OpenNote...`);
+    console.log(`[QUIZ] Problem description: ${problemDescription.substring(0, 200)}...`);
 
-    const data = await response.json() as {
-      choices: Array<{
-        message: {
-          content: string;
-        };
-      }>;
-    };
-    const content = data.choices[0]?.message?.content;
-
-    if (!content) {
-      throw new Error('No content in AI response');
-    }
-
-    // Parse the JSON response
-    let questions: QuizQuestion[];
+    // Create a practice problem set via interactives.practice
+    let createResponse;
     try {
-      // Extract JSON from the response (handle markdown code blocks)
-      const jsonMatch = content.match(/```json\n?([\s\S]*?)\n?```/) || 
-                        content.match(/\[[\s\S]*\]/);
-      const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : content;
-      questions = JSON.parse(jsonStr);
-    } catch (parseError) {
-      console.error('Failed to parse AI response:', content);
-      throw new Error('Failed to parse quiz questions');
+      createResponse = await client.interactives.practice.create({
+        set_description: problemDescription,
+        count: Math.min(questionCount, 15), // OpenNote max is 15
+        set_name: `Quiz: ${lessonTitle}`,
+        search_for_problems: false // Use lesson content directly
+      });
+      console.log(`[QUIZ] Create response:`, JSON.stringify(createResponse));
+    } catch (apiError: unknown) {
+      const msg = apiError instanceof Error ? apiError.message : String(apiError);
+      console.error('[QUIZ] OpenNote API error:', msg);
+      if (apiError instanceof Error && apiError.stack) {
+        console.error('[QUIZ] API error stack:', apiError.stack);
+      }
+      throw new Error(`OpenNote API error: ${msg}`);
     }
 
-    // Validate and format questions
-    const validatedQuestions = questions.slice(0, questionCount).map((q, idx) => ({
-      id: idx + 1,
-      question: q.question || `Question ${idx + 1}`,
-      options: Array.isArray(q.options) ? q.options.slice(0, 4) : ['A', 'B', 'C', 'D'],
-      correctAnswer: typeof q.correctAnswer === 'number' ? q.correctAnswer : 0,
-      explanation: q.explanation || 'Review the lesson content for more details.'
-    }));
+    if (!createResponse.success || !createResponse.set_id) {
+      console.error('[QUIZ] Failed to create practice set:', createResponse);
+      throw new Error('Failed to create practice set: ' + (createResponse.message || 'unknown error'));
+    }
 
-    console.log(`[QUIZ] Generated ${validatedQuestions.length} questions for "${lessonTitle}"`);
+    const setId = createResponse.set_id;
+    console.log(`[QUIZ] Practice set created: ${setId}`);
 
-    return c.json({ questions: validatedQuestions });
+    // Poll for completion (max 60 seconds)
+    let attempts = 0;
+    const maxAttempts = 12;
+    let statusResponse: PracticeProblemSetStatusResponse | null = null;
 
-  } catch (error: any) {
-    console.error('Quiz generation error:', error);
+    while (attempts < maxAttempts) {
+      await sleep(5000); // Wait 5 seconds between polls
+      statusResponse = await client.interactives.practice.status({ set_id: setId });
+
+      if (statusResponse.status === 'completed') {
+        console.log(`[QUIZ] Practice set completed after ${(attempts + 1) * 5} seconds`);
+        break;
+      } else if (statusResponse.status === 'failed') {
+        console.error('[QUIZ] Practice set generation failed:', statusResponse.message);
+        throw new Error(statusResponse.message || 'Practice set generation failed');
+      }
+
+      attempts++;
+    }
+
+    if (!statusResponse || statusResponse.status !== 'completed') {
+      console.error('[QUIZ] Practice set timed out');
+      throw new Error('Practice set generation timed out');
+    }
+
+    // Convert OpenNote problems to our quiz format
+    const problems = statusResponse.response?.problems || [];
+    console.log(`[QUIZ] Got ${problems.length} problems from OpenNote`);
+    
+    const questions = convertToQuizQuestions(problems, questionCount);
+
+    console.log(`[QUIZ] Successfully generated ${questions.length} questions for "${lessonTitle}"`);
+
+    return c.json({ questions });
+
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorStack = error instanceof Error ? error.stack : '';
+    console.error('[QUIZ] Generation error:', errorMessage);
+    console.error('[QUIZ] Stack:', errorStack);
     
     // Fallback to demo questions on error
-    const { lessonTitle, questionCount = 5 } = await c.req.json().catch(() => ({}));
-    const demoQuestions = generateDemoQuestions(lessonTitle || 'Lesson', questionCount);
+    // Note: we can't re-read the body, so we just generate generic demo questions
+    console.log('[QUIZ] Falling back to demo questions');
+    const demoQuestions = generateDemoQuestions('Lesson', 5);
     
     return c.json({ 
       questions: demoQuestions,
-      warning: 'Using demo questions due to an error'
+      warning: `Using demo questions: ${errorMessage}`
     });
   }
 });
 
-/**
- * Build the prompt for OpenAI
- */
-function buildQuizPrompt(
-  lessonTitle: string, 
-  lessonContent: string, 
-  userNotes: string, 
-  questionCount: number
-): string {
-  return `
-Generate ${questionCount} multiple-choice quiz questions for the lesson "${lessonTitle}".
+// Grade a quiz response using OpenNote
+app.post('/grade', async (c) => {
+  try {
+    const body = await c.req.json();
+    const { question, userAnswer } = body;
 
-LESSON CONTENT:
-${lessonContent.substring(0, 3000)}
+    const OPENNOTE_API_KEY = process.env.OPENNOTE_API_KEY;
 
-${userNotes ? `STUDENT'S NOTES:
-${userNotes.substring(0, 1000)}
+    if (!OPENNOTE_API_KEY) {
+      return c.json({ error: 'OpenNote API key not configured' }, 500);
+    }
 
-Pay special attention to concepts the student wrote notes about.` : ''}
+    const client = new OpennoteClient({ api_key: OPENNOTE_API_KEY });
 
-Generate questions that:
-1. Test understanding of key concepts
-2. Have 4 answer options each
-3. Include one clearly correct answer
-4. Provide helpful explanations
+    const gradeResponse: GradeFRQResponse = await client.interactives.practice.grade({
+      problem: {
+        problem_type: 'frq',
+        problem_statement: question,
+        user_answer: userAnswer,
+        difficulty: 'medium',
+        include_graph: false
+      }
+    });
 
-RESPOND WITH ONLY A JSON ARRAY in this exact format:
-[
-  {
-    "question": "Question text here?",
-    "options": ["Option A", "Option B", "Option C", "Option D"],
-    "correctAnswer": 0,
-    "explanation": "Explanation of why the answer is correct"
+    return c.json({
+      score: gradeResponse.score,
+      maxScore: gradeResponse.max_score,
+      explanation: gradeResponse.explanation,
+      percentage: gradeResponse.percentage
+    });
+
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Grading error:', errorMessage);
+    return c.json({ error: 'Failed to grade response' }, 500);
   }
-]
+});
 
-correctAnswer should be the index (0-3) of the correct option.
-Generate exactly ${questionCount} questions.
-`;
+/**
+ * Helper function to sleep
+ */
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 /**
- * Generate demo questions when OpenAI is not available
+ * Build a description for OpenNote Practice API
+ */
+function buildProblemDescription(
+  lessonTitle: string,
+  lessonContent: string,
+  userNotes?: string
+): string {
+  const contentSummary = lessonContent.substring(0, 2000);
+  const notesSummary = userNotes ? userNotes.substring(0, 500) : '';
+
+  let description = `Multiple choice questions about embedded programming topic: "${lessonTitle}". `;
+  description += `Questions should test understanding of the following concepts: ${contentSummary}`;
+  
+  if (notesSummary) {
+    description += ` Pay special attention to these student notes: ${notesSummary}`;
+  }
+
+  description += `. Create SHORT, CONCISE multiple choice questions appropriate for beginner to intermediate embedded systems students. `;
+  description += `Questions should be 1-2 sentences max. Answer options should be brief (under 50 characters each).`;
+
+  return description;
+}
+
+/**
+ * Truncate text to a maximum length with ellipsis
+ */
+function truncateText(text: string, maxLength: number): string {
+  if (text.length <= maxLength) return text;
+  return text.substring(0, maxLength - 3).trim() + '...';
+}
+
+/**
+ * Convert OpenNote problems to our quiz question format
+ * PracticeProblem has: problem_type, problem_statement, correct_answer, difficulty, answer_choices, explanation
+ */
+function convertToQuizQuestions(problems: PracticeProblem[], count: number): QuizQuestion[] {
+  return problems.slice(0, count).map((problem, idx) => {
+    // Truncate question to reasonable length (max 200 chars)
+    const question = truncateText(problem.problem_statement, 200);
+    
+    // Handle MCQ (multiple choice questions)
+    if (problem.problem_type === 'mcq' && problem.answer_choices) {
+      const choices = Object.entries(problem.answer_choices);
+      // Truncate each option to max 80 chars
+      const options = choices.map(([_, value]) => truncateText(value, 80));
+      
+      // Find the correct answer index
+      let correctAnswer = 0;
+      if (typeof problem.correct_answer === 'string') {
+        const correctKey = problem.correct_answer;
+        correctAnswer = choices.findIndex(([key, _]) => key === correctKey);
+        if (correctAnswer === -1) correctAnswer = 0;
+      }
+
+      return {
+        id: idx + 1,
+        question,
+        options: options.length >= 4 ? options.slice(0, 4) : padOptions(options),
+        correctAnswer,
+        explanation: truncateText(problem.explanation || 'Review the lesson content for more details.', 300)
+      };
+    }
+
+    // Handle selectall (convert to single correct for our format)
+    if (problem.problem_type === 'selectall' && problem.answer_choices) {
+      const choices = Object.entries(problem.answer_choices);
+      const options = choices.map(([_, value]) => truncateText(value, 80));
+      
+      return {
+        id: idx + 1,
+        question,
+        options: options.length >= 4 ? options.slice(0, 4) : padOptions(options),
+        correctAnswer: 0, // First option for selectall
+        explanation: truncateText(problem.explanation || 'Multiple answers may be correct.', 300)
+      };
+    }
+
+    // Handle FRQ (free response questions) - convert to MC format
+    const correctAnswerStr = Array.isArray(problem.correct_answer) 
+      ? problem.correct_answer[0] 
+      : (problem.correct_answer || '');
+    
+    return {
+      id: idx + 1,
+      question,
+      options: generateOptionsFromAnswer(truncateText(correctAnswerStr, 80)),
+      correctAnswer: 0, // First option is the correct answer
+      explanation: truncateText(problem.explanation || correctAnswerStr || 'Review the lesson content for more details.', 300)
+    };
+  });
+}
+
+/**
+ * Pad options array to have at least 4 options
+ */
+function padOptions(options: string[]): string[] {
+  const padded = [...options];
+  const fillers = ['None of the above', 'All of the above', 'Not enough information', 'Cannot be determined'];
+  let i = 0;
+  while (padded.length < 4 && i < fillers.length) {
+    padded.push(fillers[i]);
+    i++;
+  }
+  return padded;
+}
+
+/**
+ * Generate multiple choice options from a free response answer
+ */
+function generateOptionsFromAnswer(correctAnswer: string): string[] {
+  if (!correctAnswer || correctAnswer.length < 3) {
+    return ['True', 'False', 'Not enough information', 'None of the above'];
+  }
+  
+  return [
+    correctAnswer,
+    'The opposite is true',
+    'This only applies in special cases',
+    'None of the above'
+  ];
+}
+
+/**
+ * Generate demo questions when OpenNote is not available
  */
 function generateDemoQuestions(lessonTitle: string, count: number): QuizQuestion[] {
   const demoQuestions: QuizQuestion[] = [

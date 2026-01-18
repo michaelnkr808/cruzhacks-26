@@ -1,24 +1,23 @@
 import { Hono } from 'hono';
+import { handle } from 'hono/vercel';
 import { cors } from 'hono/cors';
-import { logger } from 'hono/logger';
 import { prettyJSON } from 'hono/pretty-json';
-import { authMiddleware } from './middleware/auth';
 
 // Import routes
-import authRoutes from './routes/auth';
-import lessonsRoutes from './routes/lessons';
-import progressRoutes from './routes/progress';
-import notesRoutes from './routes/notes';
-import usersRoutes from './routes/users';
-import projectsRoutes from './routes/projects';
-import quizRoutes from './routes/quiz';
-import achievementsRoutes from './routes/achievements';
+import authRoutes from '../src/routes/auth';
+import lessonsRoutes from '../src/routes/lessons';
+import progressRoutes from '../src/routes/progress';
+import notesRoutes from '../src/routes/notes';
+import usersRoutes from '../src/routes/users';
+import projectsRoutes from '../src/routes/projects';
+import quizRoutes from '../src/routes/quiz';
+import achievementsRoutes from '../src/routes/achievements';
+import { authMiddleware } from '../src/middleware/auth';
 
-// Create Hono app
-const app = new Hono();
+// Create Hono app for Vercel
+const app = new Hono().basePath('/');
 
 // Middleware
-app.use('*', logger());
 app.use('*', prettyJSON());
 app.use('*', cors({
   origin: '*',
@@ -67,17 +66,8 @@ app.onError((err, c) => {
   console.error(`Error: ${err.message}`);
   return c.json({
     error: err.message,
-    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
   }, 500);
 });
 
-// Start server
-const port = parseInt(process.env.PORT || '3000');
-const hostname = '0.0.0.0'; // Listen on all network interfaces
-console.log(`🚀 Server starting on http://localhost:${port}`);
-
-export default {
-  port,
-  hostname,
-  fetch: app.fetch,
-};
+// Export for Vercel
+export default handle(app);

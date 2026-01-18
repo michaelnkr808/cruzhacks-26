@@ -30,8 +30,6 @@ function Lesson() {
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   
   // Quiz state
-  const [showQuiz, setShowQuiz] = useState(false);
-  const [quizScore, setQuizScore] = useState<{ score: number; total: number } | null>(null);
   const [quizPassed, setQuizPassed] = useState(false);
   
   // Notes panel tab state
@@ -57,8 +55,7 @@ function Lesson() {
     setQuizPassed(savedQuizPass === 'true');
     
     // Reset quiz state when changing lessons
-    setQuizScore(null);
-    setShowQuiz(false);
+    setQuizStarted(false); // Reset quiz started flag for new lesson
     setActiveTab('notes');
     
     if (lessonData) {
@@ -79,11 +76,11 @@ function Lesson() {
   };
   
   // Handle "Mark Complete & Next" button
-  const handleCompleteAndNext = () => {
+  const handleCompleteAndNext = async () => {
     if (!lessonData) return;
     
-    // Mark lesson as complete
-    markLessonComplete(lessonData.id);
+    // Mark lesson as complete (now async with backend sync)
+    await markLessonComplete(lessonData.id);
     setCompleted(true);
     
     // Navigate to next lesson (in same path)
@@ -110,19 +107,26 @@ function Lesson() {
   };
   
   // Handle quiz completion
-  const handleQuizComplete = (score: number, total: number) => {
-    setQuizScore({ score, total });
+  const handleQuizComplete = async (score: number, total: number) => {
+    // Track perfect scores for achievements
+    if (score === total) {
+      localStorage.setItem(`lesson-${slug}-quiz-perfect`, 'true');
+    }
+    
     // If user scores 80% or higher, mark quiz as passed and allow progression
     if (score / total >= 0.8 && lessonData) {
       setQuizPassed(true);
       localStorage.setItem(`lesson-${slug}-quiz-passed`, 'true');
-      markLessonComplete(lessonData.id);
+      await markLessonComplete(lessonData.id);
       setCompleted(true);
     }
   };
   
-  // Check if user can progress to next lesson
-  const canProgress = quizPassed || completed;
+  // Track if quiz has been started (to prevent reset on tab switch)
+  const [quizStarted, setQuizStarted] = useState(false);
+  
+  // Check if user can progress - MUST pass quiz (80%+) for this specific lesson
+  const canProgress = quizPassed;
   
   // Handle case where lesson doesn't exist (good error handling!)
   if (!lessonData) {
@@ -339,9 +343,9 @@ Tips for effective notes:
             </>
           )}
           
-          {/* Quiz Tab Content */}
-          {activeTab === 'quiz' && lessonData && (
-            <div className="quiz-tab-content">
+          {/* Quiz Tab Content - Only render once started to prevent reset */}
+          {(activeTab === 'quiz' || quizStarted) && lessonData && (
+            <div className="quiz-tab-content" style={{ display: activeTab === 'quiz' ? 'block' : 'none' }}>
               <Quiz
                 lessonTitle={lessonData.title}
                 lessonSlug={lessonData.slug}
@@ -350,6 +354,7 @@ Tips for effective notes:
                 onClose={() => setActiveTab('notes')}
                 onComplete={handleQuizComplete}
                 inline={true}
+                onStart={() => setQuizStarted(true)}
               />
             </div>
           )}

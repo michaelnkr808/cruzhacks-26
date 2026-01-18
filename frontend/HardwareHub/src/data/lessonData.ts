@@ -1355,14 +1355,26 @@ export const getAccessibleLessons = (userLevel: UserLevel): Lesson[] => {
  * Get user from localStorage
  * Returns user object if logged in, null otherwise
  */
-export const getCurrentUser = (): { name: string; email: string; level: UserLevel } | null => {
+export const getCurrentUser = (): { id?: string; name: string; email: string; level: UserLevel } | null => {
   const userStr = localStorage.getItem('hardwareHubUser');
   if (!userStr) return null;
   return JSON.parse(userStr);
 };
 
 /**
- * LESSON PROGRESS TRACKING (localStorage-based)
+ * API URL for backend sync
+ */
+const getApiUrl = (): string => {
+  if (typeof window !== 'undefined' && import.meta?.env?.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  return 'http://localhost:3000';
+};
+
+const API_URL = getApiUrl();
+
+/**
+ * LESSON PROGRESS TRACKING (localStorage + backend sync)
  * These functions track which lessons a user has completed
  */
 
@@ -1379,9 +1391,9 @@ export const getCompletedLessons = (): number[] => {
 };
 
 /**
- * Mark a lesson as completed
+ * Mark a lesson as completed (localStorage + backend sync)
  */
-export const markLessonComplete = (lessonId: number): void => {
+export const markLessonComplete = async (lessonId: number): Promise<void> => {
   const user = getCurrentUser();
   if (!user) return;
   
@@ -1391,6 +1403,96 @@ export const markLessonComplete = (lessonId: number): void => {
   if (!completed.includes(lessonId)) {
     completed.push(lessonId);
     localStorage.setItem(key, JSON.stringify(completed));
+  }
+  
+  // Also sync with backend if user has an ID
+  if (user.id) {
+    try {
+      const token = localStorage.getItem('authToken');
+      const lesson = lessons.find(l => l.id === lessonId);
+      
+      await fetch(`${API_URL}/api/progress/complete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          user_id: user.id,
+          lesson_id: lessonId,
+          lesson_slug: lesson?.slug,
+        }),
+      });
+      
+      // Check for new achievements
+      await fetch(`${API_URL}/api/achievements/check/${user.id}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+    } catch {
+      console.log('Backend sync failed, using local storage only');
+    }
+  }
+};
+
+interface ProgressRecord {
+  lesson_id: number;
+  completed: boolean;
+}
+
+/**
+ * Sync local progress with backend (call on login)
+ */
+export const syncProgressWithBackend = async (): Promise<void> => {
+  const user = getCurrentUser();
+  if (!user?.id) return;
+  
+  try {
+    const token = localStorage.getItem('authToken');
+    const localCompleted = getCompletedLessons();
+    
+    // Get backend progress
+    const response = await fetch(`${API_URL}/api/progress/user/${user.id}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      const backendCompleted = (data.progress as ProgressRecord[] || [])
+        .filter((p) => p.completed)
+        .map((p) => p.lesson_id);
+      
+      // Merge local and backend (take union)
+      const mergedCompleted = [...new Set([...localCompleted, ...backendCompleted])];
+      
+      // Save merged to localStorage
+      const key = `completedLessons_${user.email}`;
+      localStorage.setItem(key, JSON.stringify(mergedCompleted));
+      
+      // Sync any local-only completions to backend
+      const localOnly = localCompleted.filter(id => !backendCompleted.includes(id));
+      for (const lessonId of localOnly) {
+        const lesson = lessons.find(l => l.id === lessonId);
+        await fetch(`${API_URL}/api/progress/complete`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            user_id: user.id,
+            lesson_id: lessonId,
+            lesson_slug: lesson?.slug,
+          }),
+        });
+      }
+    }
+  } catch {
+    console.log('Backend sync failed, using local storage only');
   }
 };
 

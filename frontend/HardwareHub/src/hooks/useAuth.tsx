@@ -1,4 +1,5 @@
-import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
+import { useState, useEffect, createContext, useContext } from 'react';
+import type { ReactNode } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
 
 interface User {
@@ -21,6 +22,7 @@ interface AuthContextType {
   logout: () => void;
   sendOTP: (email: string) => Promise<void>;
   refreshToken: () => Promise<void>;
+  isAuthDisabled: boolean; // True when Auth0 is not available (non-HTTPS)
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -35,9 +37,11 @@ export const useAuth = () => {
 
 interface AuthProviderProps {
   children: ReactNode;
+  skipAuth0?: boolean; // Skip Auth0 for non-secure origins
 }
 
-export const AuthProvider = ({ children }: AuthProviderProps) => {
+// Provider that uses Auth0
+const AuthProviderWithAuth0 = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -169,9 +173,39 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     logout,
     sendOTP,
     refreshToken,
+    isAuthDisabled: false,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
+
+// Provider for when Auth0 is not available (non-HTTPS origins)
+const AuthProviderWithoutAuth0 = ({ children }: { children: ReactNode }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [isLoading] = useState(false);
+
+  const value: AuthContextType = {
+    user,
+    token,
+    isLoading,
+    isAuthenticated: false,
+    login: async () => { throw new Error('Auth not available on this origin'); },
+    logout: () => { setUser(null); setToken(null); },
+    sendOTP: async () => { throw new Error('Auth not available on this origin'); },
+    refreshToken: async () => { throw new Error('Auth not available on this origin'); },
+    isAuthDisabled: true,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
+
+// Main provider that chooses which implementation to use
+export const AuthProvider = ({ children, skipAuth0 = false }: AuthProviderProps) => {
+  if (skipAuth0) {
+    return <AuthProviderWithoutAuth0>{children}</AuthProviderWithoutAuth0>;
+  }
+  return <AuthProviderWithAuth0>{children}</AuthProviderWithAuth0>;
 };
 
 // Hook for making authenticated API calls
