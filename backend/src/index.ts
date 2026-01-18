@@ -74,6 +74,10 @@ app.onError((err, c) => {
 
 // Start server for Node.js
 const port = parseInt(process.env.PORT || '3000');
+<<<<<<< HEAD
+console.log(`Server starting on http://localhost:${port}`);
+=======
+>>>>>>> 008fa3613a23683cb3b485925efe6dfd4e4daddc
 
 serve({
   fetch: app.fetch,
