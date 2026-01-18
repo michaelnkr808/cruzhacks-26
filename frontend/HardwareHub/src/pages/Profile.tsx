@@ -218,15 +218,13 @@ function Profile() {
 
   // Add Getting Started progress
   const addGettingStartedProgress = () => {
-    const gettingStartedIds = [0, -1, -2, -3, -4];
-    const existingCompleted = JSON.parse(localStorage.getItem('completedLessons') || '[]');
-    const newCompleted = [...new Set([...existingCompleted, ...gettingStartedIds])];
-    localStorage.setItem('completedLessons', JSON.stringify(newCompleted));
+    if (!userData?.email) return;
     
-    // Mark each lesson as completed
-    gettingStartedIds.forEach(id => {
-      localStorage.setItem(`lesson-${id}-completed`, 'true');
-    });
+    const gettingStartedIds = [0, -1, -2, -3, -4];
+    const key = `completedLessons_${userData.email}`;
+    const existingCompleted = JSON.parse(localStorage.getItem(key) || '[]');
+    const newCompleted = [...new Set([...existingCompleted, ...gettingStartedIds])];
+    localStorage.setItem(key, JSON.stringify(newCompleted));
     
     // Update state
     setCompletedCount(newCompleted.length);
@@ -238,15 +236,13 @@ function Profile() {
 
   // Remove Getting Started progress
   const removeGettingStartedProgress = () => {
-    const gettingStartedIds = [0, -1, -2, -3, -4];
-    const existingCompleted = JSON.parse(localStorage.getItem('completedLessons') || '[]');
-    const newCompleted = existingCompleted.filter((id: number) => !gettingStartedIds.includes(id));
-    localStorage.setItem('completedLessons', JSON.stringify(newCompleted));
+    if (!userData?.email) return;
     
-    // Remove lesson completion flags
-    gettingStartedIds.forEach(id => {
-      localStorage.removeItem(`lesson-${id}-completed`);
-    });
+    const gettingStartedIds = [0, -1, -2, -3, -4];
+    const key = `completedLessons_${userData.email}`;
+    const existingCompleted = JSON.parse(localStorage.getItem(key) || '[]');
+    const newCompleted = existingCompleted.filter((id: number) => !gettingStartedIds.includes(id));
+    localStorage.setItem(key, JSON.stringify(newCompleted));
     
     // Update state
     setCompletedCount(newCompleted.length);
@@ -258,15 +254,13 @@ function Profile() {
 
   // Add IF MAGIC progress
   const addIfmagicProgress = () => {
-    const ifmagicIds = Array.from({ length: 27 }, (_, i) => i + 1); // 1-27
-    const existingCompleted = JSON.parse(localStorage.getItem('completedLessons') || '[]');
-    const newCompleted = [...new Set([...existingCompleted, ...ifmagicIds])];
-    localStorage.setItem('completedLessons', JSON.stringify(newCompleted));
+    if (!userData?.email) return;
     
-    // Mark each lesson as completed
-    ifmagicIds.forEach(id => {
-      localStorage.setItem(`lesson-${id}-completed`, 'true');
-    });
+    const ifmagicIds = Array.from({ length: 27 }, (_, i) => i + 1); // 1-27
+    const key = `completedLessons_${userData.email}`;
+    const existingCompleted = JSON.parse(localStorage.getItem(key) || '[]');
+    const newCompleted = [...new Set([...existingCompleted, ...ifmagicIds])];
+    localStorage.setItem(key, JSON.stringify(newCompleted));
     
     // Update state
     setCompletedCount(newCompleted.length);
@@ -278,15 +272,13 @@ function Profile() {
 
   // Remove IF MAGIC progress
   const removeIfmagicProgress = () => {
-    const ifmagicIds = Array.from({ length: 27 }, (_, i) => i + 1); // 1-27
-    const existingCompleted = JSON.parse(localStorage.getItem('completedLessons') || '[]');
-    const newCompleted = existingCompleted.filter((id: number) => !ifmagicIds.includes(id));
-    localStorage.setItem('completedLessons', JSON.stringify(newCompleted));
+    if (!userData?.email) return;
     
-    // Remove lesson completion flags
-    ifmagicIds.forEach(id => {
-      localStorage.removeItem(`lesson-${id}-completed`);
-    });
+    const ifmagicIds = Array.from({ length: 27 }, (_, i) => i + 1); // 1-27
+    const key = `completedLessons_${userData.email}`;
+    const existingCompleted = JSON.parse(localStorage.getItem(key) || '[]');
+    const newCompleted = existingCompleted.filter((id: number) => !ifmagicIds.includes(id));
+    localStorage.setItem(key, JSON.stringify(newCompleted));
     
     // Update state
     setCompletedCount(newCompleted.length);
