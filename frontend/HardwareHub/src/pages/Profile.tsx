@@ -231,7 +231,6 @@ function Profile() {
     // Update state
     setCompletedCount(newCompleted.length);
     setGettingStartedComplete(true);
-    setShowProgressModal(false);
     
     // Refresh achievements
     window.location.reload();
@@ -252,7 +251,6 @@ function Profile() {
     // Update state
     setCompletedCount(newCompleted.length);
     setGettingStartedComplete(false);
-    setShowProgressModal(false);
     
     // Refresh achievements
     window.location.reload();
@@ -273,7 +271,6 @@ function Profile() {
     // Update state
     setCompletedCount(newCompleted.length);
     setIfmagicComplete(true);
-    setShowProgressModal(false);
     
     // Refresh achievements
     window.location.reload();
@@ -294,7 +291,6 @@ function Profile() {
     // Update state
     setCompletedCount(newCompleted.length);
     setIfmagicComplete(false);
-    setShowProgressModal(false);
     
     // Refresh achievements
     window.location.reload();
