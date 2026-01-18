@@ -57,8 +57,8 @@ function App() {
           {/* Learning track for a specific platform */}
           <Route path="track/:pathId" element={<Learning />} />
 
-          {/* Individual lesson - :id is a parameter (1, 2, 3, etc.) */}
-          <Route path="lesson/:id" element={<Lesson />} />
+          {/* Individual lesson - :slug is the URL-friendly lesson name */}
+          <Route path="lesson/:slug" element={<Lesson />} />
 
           {/* Projects page */}
           <Route path="projects" element={<Projects />} />

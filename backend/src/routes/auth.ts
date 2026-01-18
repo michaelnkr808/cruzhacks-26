@@ -101,7 +101,144 @@ app.post('/otp/verify', async (c) => {
   }
 });
 
-// Login endpoint - OTP based
+// Signup with password - Create user with password in Supabase Auth
+app.post('/signup', async (c) => {
+  try {
+    const body = await c.req.json();
+    const { email, password, name, level } = body;
+
+    if (!email || !password || !name) {
+      return c.json({ error: 'Email, password, and name are required' }, 400);
+    }
+
+    if (password.length < 6) {
+      return c.json({ error: 'Password must be at least 6 characters' }, 400);
+    }
+
+    // Check if user already exists in Supabase Auth
+    const { data: existingUsers } = await supabase.auth.admin.listUsers();
+    const existingUser = existingUsers?.users?.find(u => u.email === email);
+
+    if (existingUser) {
+      return c.json({ error: 'An account with this email already exists' }, 409);
+    }
+
+    // Create user in Supabase Auth with password
+    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true, // Auto-confirm for now
+      user_metadata: {
+        name,
+        level: level || 'beginner'
+      }
+    });
+
+    if (authError) {
+      console.error('Supabase Auth user creation error:', authError);
+      throw authError;
+    }
+
+    console.log('User created successfully in Supabase Auth:', authData.user);
+
+    // Generate session token
+    const token = Buffer.from(JSON.stringify({ userId: authData.user.id, email })).toString('base64');
+
+    return c.json({
+      user: {
+        id: authData.user.id,
+        email: authData.user.email,
+        name: authData.user.user_metadata?.name,
+        level: authData.user.user_metadata?.level
+      },
+      token,
+      message: 'Account created successfully'
+    }, 201);
+  } catch (error: any) {
+    console.error('Signup error:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Login Request - Verify password and send OTP for 2FA
+app.post('/login/request', async (c) => {
+  try {
+    const body = await c.req.json();
+    const { email, password } = body;
+
+    if (!email || !password) {
+      return c.json({ error: 'Email and password are required' }, 400);
+    }
+
+    // Verify password with Supabase Auth
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    if (signInError) {
+      console.error('Password verification error:', signInError);
+      return c.json({ error: 'Invalid email or password' }, 401);
+    }
+
+    // Password verified! Now send OTP for 2FA
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    console.log(`[2FA OTP] Sending verification code ${otp} to ${email}`);
+
+    // In production, send OTP via email service
+    // For now, just log it
+
+    return c.json({
+      success: true,
+      message: 'Verification code sent to email',
+    }, 200);
+  } catch (error: any) {
+    console.error('Login request error:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Login OTP Verify - Verify OTP and return user data
+app.post('/login/verify', async (c) => {
+  try {
+    const body = await c.req.json();
+    const { email, otp } = body;
+
+    if (!email || !otp) {
+      return c.json({ error: 'Email and OTP are required' }, 400);
+    }
+
+    // In production, verify OTP with Auth0
+    console.log(`[AUTH0 OTP] Verifying login OTP ${otp} for ${email}`);
+
+    // Find user in Supabase Auth
+    const { data: existingUsers } = await supabase.auth.admin.listUsers();
+    const user = existingUsers?.users?.find(u => u.email === email);
+
+    if (!user) {
+      return c.json({ error: 'User not found' }, 404);
+    }
+
+    // Generate session token
+    const token = Buffer.from(JSON.stringify({ userId: user.id, email })).toString('base64');
+
+    return c.json({
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.user_metadata?.name || 'User',
+        level: user.user_metadata?.level || 'beginner',
+        created_at: user.created_at
+      },
+      token
+    }, 200);
+  } catch (error: any) {
+    console.error('Login OTP verify error:', error);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Legacy Login endpoint - OTP based (deprecated)
 app.post('/login', async (c) => {
   try {
     const body = await c.req.json();
@@ -135,44 +272,6 @@ app.post('/login', async (c) => {
   }
 });
 
-// Legacy signup endpoint (deprecated - kept for compatibility)
-app.post('/signup', async (c) => {
-  try {
-    const body = await c.req.json();
-    const { email, name, level, auth0Id } = body;
-
-    if (!email || !name || !auth0Id) {
-      return c.json({ error: 'Missing required fields' }, 400);
-    }
-
-    const { data: existingUser } = await supabase
-      .from('users')
-      .select('*')
-      .eq('email', email)
-      .maybeSingle();
-
-    if (existingUser) {
-      return c.json({ user: existingUser }, 200);
-    }
-
-    const { data, error } = await supabase
-      .from('users')
-      .insert([{
-        email,
-        name,
-        level: level || 'beginner',
-        auth0_id: auth0Id,
-      }])
-      .select()
-      .single();
-
-    if (error) throw error;
-    return c.json({ user: data }, 201);
-  } catch (error: any) {
-    console.error('Signup error:', error);
-    return c.json({ error: error.message }, 500);
-  }
-});
 app.post('/send-otp', async (c) => {
   try {
     const body = await c.req.json();

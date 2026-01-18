@@ -3,7 +3,6 @@
  * 
  * This file contains all lesson content organized by IF MAGIC modules.
  * 
- * Key Learning Concept: "Data-Driven UI"
  * Instead of hardcoding lesson content in components, we separate DATA from PRESENTATION.
  * 
  * Benefits:
@@ -16,15 +15,27 @@
 // User skill level types
 export type UserLevel = 'beginner' | 'intermediate' | 'advanced';
 
+// Helper to generate URL-friendly slugs from titles
+export const generateSlug = (title: string): string => {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
+    .replace(/\s+/g, '-')          // Replace spaces with hyphens
+    .replace(/-+/g, '-')           // Replace multiple hyphens with single
+    .trim();
+};
+
 export interface Lesson {
   id: number;
+  slug: string; // URL-friendly identifier based on title
   title: string;
   description: string;
   duration: string;
   status: 'completed' | 'available' | 'locked';
   module?: string; // IF MAGIC module name
-  category: 'foundation' | 'sensor' | 'output' | 'advanced';
+  category: 'getting-started' | 'foundation' | 'sensor' | 'output' | 'advanced';
   requiredLevel: UserLevel; // NEW: Minimum user level required
+  path?: 'getting-started' | 'ifmagic'; // Which learning path this belongs to
   content: {
     overview: string;
     videoUrl?: string;
@@ -46,20 +57,235 @@ export interface Lesson {
  * Source: https://docs.ifmagic.io
  * 
  * Structure follows a learning path:
+ * 0. Getting Started - Universal intro for all paths
  * 1. Foundation - Platform basics
  * 2. Input Sensors - Reading data from modules
  * 3. Output Control - Controlling modules
  * 4. Advanced - Combining modules with equations
  */
 export const lessons: Lesson[] = [
-  // FOUNDATION LESSONS - Available to everyone
+  // ==========================================
+  // GETTING STARTED PATH - Required for all users
+  // ==========================================
+  {
+    id: 0,
+    slug: 'welcome-to-hardwarehub',
+    title: "Welcome to HardwareHub",
+    description: "Your first steps into embedded programming. Learn what embedded systems are and why they matter.",
+    duration: "5 min",
+    status: 'available',
+    category: 'getting-started',
+    path: 'getting-started',
+    requiredLevel: 'beginner',
+    content: {
+      overview: "Welcome! This lesson introduces you to embedded systems and sets you up for success on your learning journey.",
+      sections: [
+        {
+          title: "What is Embedded Programming?",
+          text: "Embedded programming is writing code that runs on small computers (microcontrollers) inside everyday devices. Your phone, car, washing machine, and even traffic lights all contain embedded systems!"
+        },
+        {
+          title: "Why Learn Embedded Systems?",
+          text: "Embedded systems are everywhere! Learning to program them opens doors to IoT (Internet of Things), robotics, home automation, wearables, and countless other exciting fields. It's where software meets the physical world."
+        },
+        {
+          title: "What You'll Learn",
+          text: "In HardwareHub, you'll progress from complete beginner to building real projects. We'll start with concepts, then move to hands-on work with actual hardware. No prior experience required!"
+        }
+      ],
+      practiceActivity: "Explore the HardwareHub interface. Click through the navigation and familiarize yourself with the layout.",
+      resources: [
+        {
+          title: "What is an Embedded System? (Video)",
+          url: "https://www.youtube.com/watch?v=embedded-intro"
+        },
+        {
+          title: "History of Microcontrollers",
+          url: "https://en.wikipedia.org/wiki/Microcontroller"
+        }
+      ]
+    }
+  },
+  {
+    id: -1,
+    slug: 'understanding-hardware-basics',
+    title: "Understanding Hardware Basics",
+    description: "Learn the fundamental components you'll encounter: microcontrollers, sensors, and actuators.",
+    duration: "8 min",
+    status: 'available',
+    category: 'getting-started',
+    path: 'getting-started',
+    requiredLevel: 'beginner',
+    content: {
+      overview: "Before touching real hardware, let's understand what the pieces are and how they work together.",
+      sections: [
+        {
+          title: "The Microcontroller - The Brain",
+          text: "A microcontroller (MCU) is a tiny computer on a single chip. It has a processor, memory, and input/output pins. Unlike your laptop, it's designed to do one job really well and use very little power."
+        },
+        {
+          title: "Sensors - The Senses",
+          text: "Sensors detect the physical world: temperature, light, motion, distance, touch, and more. They convert physical phenomena into electrical signals the microcontroller can read."
+        },
+        {
+          title: "Actuators - The Muscles",
+          text: "Actuators create physical effects: LEDs light up, motors spin, speakers make sound, displays show text. They convert electrical signals into actions in the real world."
+        },
+        {
+          title: "Putting It Together",
+          text: "A typical embedded project: Sensor detects something → Microcontroller processes the data → Actuator responds. Example: Motion sensor detects you → MCU decides it's dark → LED turns on!"
+        }
+      ],
+      practiceActivity: "Look around your home and identify 3 devices that likely contain embedded systems. What sensors and actuators might they have?",
+      resources: [
+        {
+          title: "Types of Sensors Explained",
+          url: "https://www.electronics-tutorials.ws/io/sensors.html"
+        }
+      ]
+    }
+  },
+  {
+    id: -2,
+    slug: 'thinking-like-a-programmer',
+    title: "Thinking Like a Programmer",
+    description: "Develop the problem-solving mindset essential for embedded programming.",
+    duration: "10 min",
+    status: 'available',
+    category: 'getting-started',
+    path: 'getting-started',
+    requiredLevel: 'beginner',
+    content: {
+      overview: "Programming is more about thinking than typing. Learn the mental models that make coding easier.",
+      sections: [
+        {
+          title: "Break It Down",
+          text: "The #1 skill in programming: breaking big problems into small steps. Want a light that turns on when it's dark? Step 1: Read light level. Step 2: Compare to threshold. Step 3: Control LED. Simple pieces = solvable problems."
+        },
+        {
+          title: "Input → Process → Output",
+          text: "Almost every program follows this pattern. Something comes IN (button press, sensor reading), you PROCESS it (make a decision, do math), and something goes OUT (LED, sound, motor). Remember IPO!"
+        },
+        {
+          title: "Start Simple, Then Iterate",
+          text: "Don't try to build everything at once. Get a tiny version working first. Make the LED blink. Then add the button. Then add the sensor. Small wins build to big projects."
+        },
+        {
+          title: "Debugging is Learning",
+          text: "Your code won't work the first time. That's normal! Debugging teaches you more than getting it right. When something fails, you're about to learn something new."
+        }
+      ],
+      practiceActivity: "Write down the steps (in plain English) to make a nightlight that turns on automatically when it gets dark. Use the IPO pattern.",
+      resources: [
+        {
+          title: "Computational Thinking Explained",
+          url: "https://www.cs.cmu.edu/~CompThink/"
+        }
+      ]
+    }
+  },
+  {
+    id: -3,
+    slug: 'choosing-your-hardware-path',
+    title: "Choosing Your Hardware Path",
+    description: "Understand the different hardware platforms and choose the right one for your goals.",
+    duration: "7 min",
+    status: 'available',
+    category: 'getting-started',
+    path: 'getting-started',
+    requiredLevel: 'beginner',
+    content: {
+      overview: "Different hardware platforms have different strengths. Let's help you pick the right one.",
+      sections: [
+        {
+          title: "IF MAGIC - Best for Beginners",
+          text: "IF MAGIC uses modular, plug-and-play components. No soldering, no complex wiring. Perfect for learning concepts without getting stuck on hardware issues. Recommended if you're brand new!"
+        },
+        {
+          title: "Arduino - The Classic Choice",
+          text: "Arduino has been the go-to learning platform for years. Huge community, tons of tutorials, works with thousands of accessories. Great stepping stone to professional development."
+        },
+        {
+          title: "ESP32 - WiFi & Bluetooth Built-in",
+          text: "ESP32 is perfect for IoT projects. Built-in wireless means you can connect your projects to the internet. More powerful than Arduino, but slightly steeper learning curve."
+        },
+        {
+          title: "Raspberry Pi Pico - Affordable Power",
+          text: "The Pico offers professional-level features at a hobby price. Dual-core processor, PIO for custom protocols. Great for intermediate learners ready for more."
+        }
+      ],
+      practiceActivity: "Based on what you've learned, decide which platform you want to start with. Remember: IF MAGIC is recommended for complete beginners!",
+      resources: [
+        {
+          title: "IF MAGIC Documentation",
+          url: "https://docs.ifmagic.io"
+        },
+        {
+          title: "Arduino vs ESP32 Comparison",
+          url: "https://makeradvisor.com/arduino-vs-esp32/"
+        }
+      ]
+    }
+  },
+  {
+    id: -4,
+    slug: 'setting-up-your-learning-environment',
+    title: "Setting Up Your Learning Environment",
+    description: "Get your computer ready for embedded development and complete your first milestone!",
+    duration: "12 min",
+    status: 'available',
+    category: 'getting-started',
+    path: 'getting-started',
+    requiredLevel: 'beginner',
+    content: {
+      overview: "Let's set up your development environment and make sure everything works before diving into real projects.",
+      sections: [
+        {
+          title: "What You'll Need",
+          text: "A computer (Windows, Mac, or Linux all work), a USB cable for connecting hardware, and optionally your chosen hardware platform. Don't have hardware yet? No problem - we'll use simulators first!"
+        },
+        {
+          title: "Installing the Software",
+          text: "For IF MAGIC: Download the IF MAGIC app from their website. For Arduino/ESP32: Install the Arduino IDE or PlatformIO. For simulations: We'll use Wokwi, a free online simulator that works in your browser."
+        },
+        {
+          title: "Your First Test",
+          text: "Let's verify your setup works! For IF MAGIC users: Open the app and connect your device. For others: Open your IDE and create a new project. If you see a blank editor, you're ready!"
+        },
+        {
+          title: "Congratulations!",
+          text: "You've completed the Getting Started path! You now understand what embedded systems are, how they work, and you've got your environment ready. Time to pick a learning path and build something real!"
+        }
+      ],
+      practiceActivity: "Complete your environment setup. If using IF MAGIC, connect your device. If using Arduino/ESP32, create a new project in your IDE. Mark this lesson complete to unlock other learning paths!",
+      resources: [
+        {
+          title: "IF MAGIC App Download",
+          url: "https://ifmagic.io/download"
+        },
+        {
+          title: "Arduino IDE Download",
+          url: "https://www.arduino.cc/en/software"
+        },
+        {
+          title: "Wokwi Online Simulator",
+          url: "https://wokwi.com"
+        }
+      ]
+    }
+  },
+  // ==========================================
+  // IF MAGIC PATH - Foundation Lessons
+  // ==========================================
   {
     id: 1,
+    slug: 'welcome-to-if-magic',
     title: "Welcome to IF MAGIC",
     description: "Get started with IF MAGIC platform basics, connecting your device, and understanding the ecosystem.",
     duration: "10 min",
     status: 'available',
     category: 'foundation',
+    path: 'ifmagic',
     requiredLevel: 'beginner',
     content: {
       overview: "Learn the fundamentals of the IF MAGIC platform and how embedded systems work with modular hardware.",
@@ -92,6 +318,7 @@ export const lessons: Lesson[] = [
   },
   {
     id: 2,
+    slug: 'setting-up-your-first-module',
     title: "Setting Up Your First Module",
     description: "Learn how to physically connect modules to The Device and configure them in the IF MAGIC app.",
     duration: "15 min",
@@ -131,6 +358,7 @@ export const lessons: Lesson[] = [
   // INPUT SENSOR LESSONS - Beginner Modules
   {
     id: 3,
+    slug: 'button-module-digital-input',
     title: "Button Module - Digital Input",
     description: "A digital input module that detects whether a physical button is pressed or not.",
     duration: "20 min",
@@ -170,6 +398,7 @@ export const lessons: Lesson[] = [
   },
   {
     id: 4,
+    slug: 'slider-module-analog-input',
     title: "Slider Module - Analog Input",
     description: "Explore analog sensors with the Slider module. Learn about variable input and value mapping.",
     duration: "25 min",
@@ -208,6 +437,7 @@ export const lessons: Lesson[] = [
   },
   {
     id: 5,
+    slug: 'dial-module-rotational-control',
     title: "Dial Module - Rotational Control",
     description: "Master rotational input with the Dial module. Learn to read angular position and create intuitive controls.",
     duration: "25 min",
@@ -246,6 +476,7 @@ export const lessons: Lesson[] = [
   },
   {
     id: 6,
+    slug: 'joystick-module-2d-input-control',
     title: "Joystick Module - 2D Input Control",
     description: "Explore two-dimensional input with the Joystick. Perfect for navigation and directional control.",
     duration: "30 min",
@@ -281,6 +512,7 @@ export const lessons: Lesson[] = [
   // Intermediate Modules Start Here
   {
     id: 7,
+    slug: 'distance-module-proximity-detection',
     title: "Distance Module - Proximity Detection",
     description: "Work with the Distance sensor to understand proximity detection and continuous data streams.",
     duration: "25 min",
@@ -315,6 +547,7 @@ export const lessons: Lesson[] = [
   },
   {
     id: 8,
+    slug: 'proximity-module-near-field-detection',
     title: "Proximity Module - Near Field Detection",
     description: "Detect nearby objects and hand gestures with the Proximity sensor. Create touchless interfaces.",
     duration: "25 min",
@@ -349,6 +582,7 @@ export const lessons: Lesson[] = [
   },
   {
     id: 9,
+    slug: 'light-module-ambient-sensing',
     title: "Light Module - Ambient Sensing",
     description: "Measure light levels and create adaptive lighting systems with the Light sensor.",
     duration: "20 min",
@@ -383,6 +617,7 @@ export const lessons: Lesson[] = [
   },
   {
     id: 10,
+    slug: 'color-module-rgb-detection',
     title: "Color Module - RGB Detection",
     description: "Detect and analyze colors with the Color sensor. Learn about RGB values and color theory.",
     duration: "30 min",
@@ -418,6 +653,7 @@ export const lessons: Lesson[] = [
 
   {
     id: 11,
+    slug: 'sound-module-audio-detection',
     title: "Sound Module - Audio Detection",
     description: "Detect sound levels and create sound-reactive systems with the Sound sensor.",
     duration: "25 min",
@@ -452,6 +688,7 @@ export const lessons: Lesson[] = [
   },
   {
     id: 12,
+    slug: 'motion-module-movement-detection',
     title: "Motion Module - Movement Detection",
     description: "Detect motion and orientation changes with the Motion sensor and IMU.",
     duration: "30 min",
@@ -490,6 +727,7 @@ export const lessons: Lesson[] = [
   },
   {
     id: 13,
+    slug: 'gesture-module-advanced-motion-recognition',
     title: "Gesture Module - Advanced Motion Recognition",
     description: "Recognize complex gestures and create intuitive motion-based controls.",
     duration: "30 min",
@@ -524,6 +762,7 @@ export const lessons: Lesson[] = [
   },
   {
     id: 14,
+    slug: 'flex-module-bend-sensing',
     title: "Flex Module - Bend Sensing",
     description: "Measure bending and flexing with the Flex sensor. Perfect for wearables and robotics.",
     duration: "25 min",
@@ -558,6 +797,7 @@ export const lessons: Lesson[] = [
   },
   {
     id: 15,
+    slug: 'force-module-pressure-sensing',
     title: "Force Module - Pressure Sensing",
     description: "Measure pressure and force with the Force sensor. Create touch-sensitive interfaces.",
     duration: "25 min",
@@ -592,6 +832,7 @@ export const lessons: Lesson[] = [
   },
   {
     id: 16,
+    slug: 'environment-module-temperature-humidity',
     title: "Environment Module - Temperature & Humidity",
     description: "Monitor environmental conditions with temperature and humidity sensors.",
     duration: "25 min",
@@ -626,6 +867,7 @@ export const lessons: Lesson[] = [
   },
   {
     id: 17,
+    slug: 'thermal-module-temperature-detection',
     title: "Thermal Module - Temperature Detection",
     description: "Measure temperature and create temperature-responsive systems.",
     duration: "20 min",
@@ -660,6 +902,7 @@ export const lessons: Lesson[] = [
   },
   {
     id: 18,
+    slug: 'spin-module-continuous-rotation',
     title: "Spin Module - Continuous Rotation",
     description: "Track unlimited rotation with the Spin module. Perfect for wheels and continuous dials.",
     duration: "25 min",
@@ -694,6 +937,7 @@ export const lessons: Lesson[] = [
   },
   {
     id: 19,
+    slug: 'move-module-accelerometer-basics',
     title: "Move Module - Accelerometer Basics",
     description: "Learn acceleration and movement tracking with the Move sensor.",
     duration: "25 min",
@@ -728,6 +972,7 @@ export const lessons: Lesson[] = [
   },
   {
     id: 20,
+    slug: 'digital-module-binary-io',
     title: "Digital Module - Binary I/O",
     description: "Understand digital signals and binary input/output with the Digital module.",
     duration: "20 min",
@@ -764,6 +1009,7 @@ export const lessons: Lesson[] = [
   // OUTPUT LESSONS - Beginner friendly
   {
     id: 21,
+    slug: 'glow-module-controlling-leds',
     title: "Glow Module - Controlling LEDs",
     description: "Learn to control LED outputs, set colors, and adjust brightness using the Glow module.",
     duration: "20 min",
@@ -798,6 +1044,7 @@ export const lessons: Lesson[] = [
   },
   {
     id: 22,
+    slug: 'tone-module-musical-output',
     title: "Tone Module - Musical Output",
     description: "Generate musical tones and melodies using the Tone module.",
     duration: "25 min",
@@ -838,6 +1085,7 @@ export const lessons: Lesson[] = [
   // ADVANCED LESSONS - Require higher skill levels
   {
     id: 23,
+    slug: 'creating-equations-logic-flow',
     title: "Creating Equations - Logic Flow",
     description: "Master IF MAGIC's equation system to create complex interactions between multiple modules.",
     duration: "30 min",
@@ -875,6 +1123,7 @@ export const lessons: Lesson[] = [
   },
   {
     id: 24,
+    slug: 'multi-module-interactions',
     title: "Multi-Module Interactions",
     description: "Combine multiple sensor and output modules to create complex, responsive systems.",
     duration: "35 min",
@@ -908,6 +1157,7 @@ export const lessons: Lesson[] = [
   },
   {
     id: 25,
+    slug: 'advanced-motion-gesture-control',
     title: "Advanced Motion & Gesture Control",
     description: "Create sophisticated gesture-based interactions using Motion and Gesture modules.",
     duration: "30 min",
@@ -949,6 +1199,7 @@ export const lessons: Lesson[] = [
   },
   {
     id: 26,
+    slug: 'using-the-api-code-integration',
     title: "Using the API - Code Integration",
     description: "Learn to control IF MAGIC hardware programmatically using JavaScript, Python, or Unity.",
     duration: "40 min",
@@ -990,6 +1241,7 @@ export const lessons: Lesson[] = [
   },
   {
     id: 27,
+    slug: 'final-project-build-your-creation',
     title: "Final Project - Build Your Creation",
     description: "Apply everything you've learned to build a complete interactive project from scratch.",
     duration: "60 min",
@@ -1037,6 +1289,14 @@ export const lessons: Lesson[] = [
  */
 export const getLessonById = (id: number): Lesson | undefined => {
   return lessons.find(lesson => lesson.id === id);
+};
+
+/**
+ * Helper function to get a lesson by slug
+ * Used for URL-based lesson lookup
+ */
+export const getLessonBySlug = (slug: string): Lesson | undefined => {
+  return lessons.find(lesson => lesson.slug === slug);
 };
 
 /**

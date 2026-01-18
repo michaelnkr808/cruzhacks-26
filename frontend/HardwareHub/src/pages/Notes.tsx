@@ -18,6 +18,7 @@ import './Notes.css';
 
 interface LessonNote {
   lessonId: number;
+  lessonSlug: string;
   lessonTitle: string;
   notes: string;
   hasNotes: boolean;
@@ -32,9 +33,10 @@ function Notes() {
   // Load all notes from localStorage on mount
   useEffect(() => {
     const allNotes: LessonNote[] = lessons.map(lesson => {
-      const savedNotes = localStorage.getItem(`lesson-${lesson.id}-notes`) || '';
+      const savedNotes = localStorage.getItem(`lesson-${lesson.slug}-notes`) || '';
       return {
         lessonId: lesson.id,
+        lessonSlug: lesson.slug,
         lessonTitle: lesson.title,
         notes: savedNotes,
         hasNotes: savedNotes.length > 0
@@ -71,11 +73,11 @@ function Notes() {
   };
 
   // Delete notes for a lesson
-  const deleteNotes = (lessonId: number) => {
+  const deleteNotes = (lessonSlug: string) => {
     if (confirm('Are you sure you want to delete these notes?')) {
-      localStorage.removeItem(`lesson-${lessonId}-notes`);
+      localStorage.removeItem(`lesson-${lessonSlug}-notes`);
       setLessonNotes(prev => prev.map(note => 
-        note.lessonId === lessonId ? { ...note, notes: '', hasNotes: false } : note
+        note.lessonSlug === lessonSlug ? { ...note, notes: '', hasNotes: false } : note
       ));
     }
   };
@@ -186,7 +188,7 @@ function Notes() {
                     <pre className="note-text">{note.notes}</pre>
                     <div className="note-footer">
                       <Link 
-                        to={`/lesson/${note.lessonId}`}
+                        to={`/lesson/${note.lessonSlug}`}
                         className="edit-btn"
                       >
                         ▸ Edit in Lesson
@@ -195,7 +197,7 @@ function Notes() {
                         className="delete-btn"
                         onClick={(e) => {
                           e.stopPropagation();
-                          deleteNotes(note.lessonId);
+                          deleteNotes(note.lessonSlug);
                         }}
                       >
                         × Delete Notes

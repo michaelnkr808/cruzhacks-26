@@ -1,17 +1,17 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { getLessonById, lessons, markLessonComplete, isLessonCompleted } from '../data/lessonData';
+import { getLessonBySlug, lessons, markLessonComplete, isLessonCompleted } from '../data/lessonData';
 import './Lesson.css';
 
 /**
  * Lesson Page - Individual lesson view WITH PERSISTENT NOTES
  * 
  * Key Concepts:
- * - useParams(): Gets the lesson ID from the URL (/lesson/1 → id = "1")
+ * - useParams(): Gets the lesson slug from the URL (/lesson/button-module → slug = "button-module")
  * - useState(): Manages the notes that users type
  * - useEffect(): Loads saved notes from localStorage on mount
  * - localStorage: Persists notes across browser sessions
- * - Data fetching: We use getLessonById() to get the right lesson
+ * - Data fetching: We use getLessonBySlug() to get the right lesson
  * - Two-column layout: Content on left, notes on right
  * 
  * Real-world pattern:
@@ -20,35 +20,37 @@ import './Lesson.css';
  */
 
 function Lesson() {
-  // Get the lesson ID from the URL
-  const { id } = useParams<{ id: string }>();
+  // Get the lesson slug from the URL
+  const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
-  const lessonId = parseInt(id || '1');
   
   // State for notes - React remembers this between re-renders
   const [notes, setNotes] = useState('');
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  
+  // Fetch the lesson data based on slug
+  const lessonData = getLessonBySlug(slug || '');
+  const lessonId = lessonData?.id || 0;
+  
   const [completed, setCompleted] = useState(isLessonCompleted(lessonId));
   
-  // Fetch the lesson data based on ID
-  // parseInt() converts string "1" to number 1
-  const lessonData = getLessonById(lessonId);
-  
-  // Load saved notes and completion status when component mounts or ID changes
+  // Load saved notes and completion status when component mounts or slug changes
   useEffect(() => {
-    const savedNotes = localStorage.getItem(`lesson-${id}-notes`);
+    const savedNotes = localStorage.getItem(`lesson-${slug}-notes`);
     if (savedNotes) {
       setNotes(savedNotes);
     } else {
       setNotes(''); // Clear notes if switching to a lesson with no saved notes
     }
-    setCompleted(isLessonCompleted(lessonId));
-  }, [id, lessonId]);
+    if (lessonData) {
+      setCompleted(isLessonCompleted(lessonData.id));
+    }
+  }, [slug, lessonData]);
   
   // Save notes to localStorage
   const saveNotes = () => {
     setSaveStatus('saving');
-    localStorage.setItem(`lesson-${id}-notes`, notes);
+    localStorage.setItem(`lesson-${slug}-notes`, notes);
     
     // Show "saved" status for 2 seconds
     setTimeout(() => {
@@ -59,18 +61,21 @@ function Lesson() {
   
   // Handle "Mark Complete & Next" button
   const handleCompleteAndNext = () => {
+    if (!lessonData) return;
+    
     // Mark lesson as complete
-    markLessonComplete(lessonId);
+    markLessonComplete(lessonData.id);
     setCompleted(true);
     
-    // Navigate to next lesson
-    const currentIndex = lessons.findIndex(l => l.id === lessonId);
-    if (currentIndex < lessons.length - 1) {
-      const nextLesson = lessons[currentIndex + 1];
-      navigate(`/lesson/${nextLesson.id}`);
+    // Navigate to next lesson (in same path)
+    const pathLessons = lessons.filter(l => l.path === lessonData.path);
+    const currentIndex = pathLessons.findIndex(l => l.id === lessonData.id);
+    if (currentIndex < pathLessons.length - 1) {
+      const nextLesson = pathLessons[currentIndex + 1];
+      navigate(`/lesson/${nextLesson.slug}`);
     } else {
       // If last lesson, go back to learning page
-      navigate('/learning');
+      navigate(`/track/${lessonData.path || 'ifmagic'}`);
     }
   };
   
@@ -187,8 +192,18 @@ function Lesson() {
             <div className="lesson-navigation">
               <button 
                 className="nav-btn" 
-                disabled={lessonId === 1}
-                onClick={() => navigate(`/lesson/${lessonId - 1}`)}
+                disabled={!lessonData || (() => {
+                  const pathLessons = lessons.filter(l => l.path === lessonData?.path);
+                  return pathLessons.findIndex(l => l.id === lessonData?.id) === 0;
+                })()}
+                onClick={() => {
+                  if (!lessonData) return;
+                  const pathLessons = lessons.filter(l => l.path === lessonData.path);
+                  const currentIndex = pathLessons.findIndex(l => l.id === lessonData.id);
+                  if (currentIndex > 0) {
+                    navigate(`/lesson/${pathLessons[currentIndex - 1].slug}`);
+                  }
+                }}
               >
                 ← Previous Lesson
               </button>

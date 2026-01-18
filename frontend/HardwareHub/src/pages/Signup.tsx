@@ -7,7 +7,7 @@ import './Signup.css';
 interface FormData {
   name: string;
   email: string;
-  // password: string; // removed for OTP flow
+  password: string;
   // Survey questions
   hasEmbeddedExperience: string;
   hasHardwareExperience: string;
@@ -27,13 +27,12 @@ function Signup() {
   const [formData, setFormData] = useState<FormData>({
     name: '',
     email: '',
+    password: '',
     hasEmbeddedExperience: '',
     hasHardwareExperience: '',
     hasProgrammingExperience: '',
     motivationLevel: ''
   });
-  const [otp, setOTP] = useState('');
-  const [step, setStep] = useState<'info' | 'otp'>('info');
   
   // Error state for validation messages
   const [error, setError] = useState('');
@@ -54,9 +53,6 @@ function Signup() {
       ...prev,
       [name]: value
     }));
-  };
-  const handleOTPChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setOTP(e.target.value);
   };
   
   /**
@@ -95,8 +91,12 @@ function Signup() {
    * Return true if valid, false if not
    */
   const validateForm = (): boolean => {
-    if (!formData.name || !formData.email) {
+    if (!formData.name || !formData.email || !formData.password) {
       setError('Please fill in all account fields');
+      return false;
+    }
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters');
       return false;
     }
     if (!formData.hasEmbeddedExperience || !formData.hasHardwareExperience || 
@@ -115,60 +115,32 @@ function Signup() {
   
   /**
    * Handle form submission
-   * 
-   * In a real app, this would:
-   * 1. Send data to a backend API
-   * 2. Create user account in database
-   * 3. Return authentication token
-   * 
-   * For now, we're using localStorage (browser storage)
-   * to simulate user accounts. Good for prototypes!
+   * Create user account with password
    */
-  // Step 1: Request OTP
-  const handleRequestOTP = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     if (!validateForm()) return;
     setIsSubmitting(true);
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/otp/request`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: formData.email })
-      });
-      if (!res.ok) throw new Error('Failed to request OTP');
-      setStep('otp');
-    } catch (err: any) {
-      setError(err.message || 'Error requesting OTP');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // Step 2: Verify OTP and create user
-  const handleVerifyOTP = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setIsSubmitting(true);
-    try {
       const userLevel = determineUserLevel();
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/otp/verify`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: formData.email,
-          otp,
+          password: formData.password,
           name: formData.name,
           level: userLevel
         })
       });
-      if (!res.ok) throw new Error('OTP verification failed');
-      const { user, token } = await res.json();
-      localStorage.setItem('hardwareHubUser', JSON.stringify(user));
-      localStorage.setItem('authToken', token);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Signup failed');
+      localStorage.setItem('hardwareHubUser', JSON.stringify(data.user));
+      localStorage.setItem('authToken', data.token);
       navigate('/learning');
     } catch (err: any) {
-      setError(err.message || 'Error verifying OTP');
+      setError(err.message || 'Error creating account');
     } finally {
       setIsSubmitting(false);
     }
@@ -181,36 +153,47 @@ function Signup() {
           <h1>Join HardwareHub</h1>
           <p>Start your embedded programming journey today!</p>
         </div>
-        {step === 'info' ? (
-          <form onSubmit={handleRequestOTP} className="signup-form">
-            {/* Account Information Section */}
-            <div className="form-section">
-              <h2>Account Information</h2>
-              <div className="form-group">
-                <label htmlFor="name">Full Name</label>
-                <input
-                  type="text"
-                  id="name"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  placeholder="Enter your full name"
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label htmlFor="email">Email Address</label>
-                <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="your.email@example.com"
-                  required
-                />
-              </div>
+        <form onSubmit={handleSubmit} className="signup-form">
+          {/* Account Information Section */}
+          <div className="form-section">
+            <h2>Account Information</h2>
+            <div className="form-group">
+              <label htmlFor="name">Full Name</label>
+              <input
+                type="text"
+                id="name"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                placeholder="Enter your full name"
+                required
+              />
             </div>
+            <div className="form-group">
+              <label htmlFor="email">Email Address</label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                placeholder="your.email@example.com"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="password">Password</label>
+              <input
+                type="password"
+                id="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                placeholder="Create a password (min 6 characters)"
+                required
+              />
+            </div>
+          </div>
             {/* Experience Survey Section */}
             <div className="form-section survey-section">
               <h2>▣ Quick Experience Survey</h2>
@@ -364,47 +347,12 @@ function Signup() {
               className="submit-button"
               disabled={isSubmitting}
             >
-              {isSubmitting ? 'Signing Up...' : 'Sign Up'}
+              {isSubmitting ? 'Creating Account...' : 'Create Account'}
             </button>
             <p className="login-link">
               Already have an account? <a href="/login">Log in</a>
             </p>
           </form>
-        ) : (
-          <form onSubmit={handleVerifyOTP} className="signup-form">
-            <div className="form-section">
-              <h2>Enter OTP</h2>
-              <div className="form-group">
-                <label htmlFor="otp">OTP Code</label>
-                <input
-                  type="text"
-                  id="otp"
-                  name="otp"
-                  value={otp}
-                  onChange={handleOTPChange}
-                  placeholder="Enter the code sent to your email"
-                  required
-                />
-              </div>
-            </div>
-            {/* Error Message */}
-            {error && (
-              <div className="error-message">
-                ⚠ {error}
-              </div>
-            )}
-            <button 
-              type="submit" 
-              className="submit-button"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? 'Signing Up...' : 'Sign Up'}
-            </button>
-            <p className="login-link">
-              Already have an account? <a href="/login">Log in</a>
-            </p>
-          </form>
-        )}
       </div>
     </div>
   );
