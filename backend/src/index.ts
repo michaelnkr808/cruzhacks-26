@@ -56,7 +56,7 @@ app.onError((err, c) => {
 
 // Start server
 const port = parseInt(process.env.PORT || '3000');
-console.log(`🚀 Server starting on http://localhost:${port}`);
+console.log(`Server starting on http://localhost:${port}`);
 
 export default {
   port,
