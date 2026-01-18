@@ -1405,6 +1405,12 @@ export const markLessonComplete = async (lessonId: number): Promise<void> => {
     localStorage.setItem(key, JSON.stringify(completed));
   }
   
+  // Check if the current lesson's path is now fully complete
+  const currentLesson = lessons.find(l => l.id === lessonId);
+  if (currentLesson?.path) {
+    checkAndUpdatePathCompletion(currentLesson.path, completed);
+  }
+  
   // Also sync with backend if user has an ID
   if (user.id) {
     try {
@@ -1433,6 +1439,30 @@ export const markLessonComplete = async (lessonId: number): Promise<void> => {
       });
     } catch {
       console.log('Backend sync failed, using local storage only');
+    }
+  }
+};
+
+/**
+ * Check if all lessons in a path are complete and update completedPaths
+ */
+const checkAndUpdatePathCompletion = (pathId: string, completedLessonIds: number[]): void => {
+  // Get all lessons for this path
+  const pathLessons = lessons.filter(l => l.path === pathId);
+  
+  // Check if all lessons in the path are completed
+  const allCompleted = pathLessons.every(lesson => completedLessonIds.includes(lesson.id));
+  
+  if (allCompleted && pathLessons.length > 0) {
+    // Get current completed paths from localStorage
+    const completedPathsStr = localStorage.getItem('completedPaths');
+    const completedPaths: string[] = completedPathsStr ? JSON.parse(completedPathsStr) : [];
+    
+    // Add this path if not already in the list
+    if (!completedPaths.includes(pathId)) {
+      completedPaths.push(pathId);
+      localStorage.setItem('completedPaths', JSON.stringify(completedPaths));
+      console.log(`🎉 Path "${pathId}" completed! Other paths are now unlocked.`);
     }
   }
 };
