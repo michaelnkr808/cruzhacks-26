@@ -1,15 +1,10 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "src/vercel.ts",
-      "use": "@vercel/node"
-    }
-  ],
+  "buildCommand": "npm run build:vercel",
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "/src/vercel.ts"
+      "dest": "/api/index.mjs"
     }
   ]
 }

@@ -6,7 +6,7 @@
     "dev": "bun run --watch src/index.ts",
     "start": "bun run src/index.ts",
     "build": "tsc",
-    "build:vercel": "esbuild api/index.ts --bundle --platform=node --target=node20 --outdir=dist/api --format=esm --external:@supabase/supabase-js --external:hono --external:jose --external:@opennote-ed/sdk",
+    "build:vercel": "esbuild src/vercel.ts --bundle --platform=node --target=node20 --outfile=api/index.mjs --format=esm --packages=external --banner:js=\"import { createRequire } from 'module'; const require = createRequire(import.meta.url);\"",
     "db:generate": "supabase gen types typescript --local > src/types/database.types.ts"
   },
   "dependencies": {
@@ -24,7 +24,7 @@
     "@types/bun": "latest",
     "@types/node": "^20.0.0",
     "bun-types": "latest",
-    "esbuild": "^0.20.0",
+    "esbuild": "^0.20.2",
     "typescript": "^5.0.0"
   }
 }
