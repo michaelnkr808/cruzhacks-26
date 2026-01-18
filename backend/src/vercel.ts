@@ -1,5 +1,4 @@
 import { Hono } from 'hono';
-import { handle } from 'hono/vercel';
 import { cors } from 'hono/cors';
 import { prettyJSON } from 'hono/pretty-json';
 
@@ -15,7 +14,7 @@ import achievementsRoutes from './routes/achievements';
 import { authMiddleware } from './middleware/auth';
 
 // Create Hono app for Vercel
-const app = new Hono().basePath('/');
+const app = new Hono();
 
 // Middleware
 app.use('*', prettyJSON());
@@ -69,5 +68,7 @@ app.onError((err, c) => {
   }, 500);
 });
 
-// Export for Vercel
-export default handle(app);
+// Export for Vercel Edge/Serverless - use fetch handler directly
+export default async function handler(req: Request): Promise<Response> {
+  return app.fetch(req);
+}
