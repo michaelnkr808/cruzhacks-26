@@ -11,7 +11,7 @@
     "db:generate": "supabase gen types typescript --local > src/types/database.types.ts"
   },
   "dependencies": {
-    "@hono/node-server": "^1.8.2",
+    "@hono/node-server": "^1.13.7",
     "@metaplex-foundation/js": "^0.20.1",
     "@opennote-ed/sdk": "^2.3.3",
     "@solana/web3.js": "^1.98.4",
@@ -31,5 +31,10 @@
   },
   "engines": {
     "node": ">=20.0.0"
+  },
+  "vite": {
+    "define": {
+      "process.env.VITE_API_URL": "\"https://embedpath-backend.onrender.com\""
+    }
   }
 }

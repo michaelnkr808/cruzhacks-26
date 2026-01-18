@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import { prettyJSON } from 'hono/pretty-json';
+import { serve } from '@hono/node-server';
 import { authMiddleware } from './middleware/auth';
 
 // Import routes
@@ -71,13 +72,13 @@ app.onError((err, c) => {
   }, 500);
 });
 
-// Start server
+// Start server for Node.js
 const port = parseInt(process.env.PORT || '3000');
-const hostname = '0.0.0.0'; // Listen on all network interfaces
-console.log(`🚀 Server starting on http://localhost:${port}`);
 
-export default {
-  port,
-  hostname,
+serve({
   fetch: app.fetch,
-};
+  port,
+  hostname: '0.0.0.0'
+}, (info) => {
+  console.log(`🚀 Server running on http://0.0.0.0:${info.port}`);
+});
