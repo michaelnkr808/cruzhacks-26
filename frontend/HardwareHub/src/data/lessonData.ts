@@ -1593,3 +1593,125 @@ export const syncProgressWithBackend = async (): Promise<void> => {
 export const isLessonCompleted = (lessonId: number): boolean => {
   return getCompletedLessons().includes(lessonId);
 };
+
+// ==========================================
+// TESTING UTILITIES - Available in browser console as window.HardwareHubTest
+// ==========================================
+
+/**
+ * Testing utilities for development/debugging
+ * Access in browser console: window.HardwareHubTest
+ */
+export const TestUtils = {
+  /**
+   * Complete a specific lesson by ID
+   */
+  completeLesson: (lessonId: number) => {
+    const user = getCurrentUser();
+    if (!user) {
+      console.error('❌ No user logged in');
+      return;
+    }
+    const key = `completedLessons_${user.email}`;
+    const completed = getCompletedLessons();
+    if (!completed.includes(lessonId)) {
+      completed.push(lessonId);
+      localStorage.setItem(key, JSON.stringify(completed));
+      console.log(`✅ Lesson ${lessonId} marked complete`);
+    } else {
+      console.log(`ℹ️ Lesson ${lessonId} already complete`);
+    }
+    // Check path completion
+    const lesson = lessons.find(l => l.id === lessonId);
+    if (lesson?.path) {
+      recheckAllPathCompletions();
+    }
+  },
+
+  /**
+   * Remove completion for a specific lesson
+   */
+  uncompleteLesson: (lessonId: number) => {
+    const user = getCurrentUser();
+    if (!user) {
+      console.error('❌ No user logged in');
+      return;
+    }
+    const key = `completedLessons_${user.email}`;
+    let completed = getCompletedLessons();
+    completed = completed.filter(id => id !== lessonId);
+    localStorage.setItem(key, JSON.stringify(completed));
+    console.log(`✅ Lesson ${lessonId} unmarked`);
+  },
+
+  /**
+   * Complete all lessons in the Getting Started path
+   */
+  completeGettingStarted: () => {
+    const gettingStartedIds = [0, -1, -2, -3, -4];
+    gettingStartedIds.forEach(id => TestUtils.completeLesson(id));
+    recheckAllPathCompletions();
+    console.log('✅ Getting Started path completed!');
+  },
+
+  /**
+   * Complete all IF MAGIC lessons
+   */
+  completeIfMagic: () => {
+    const ifMagicLessons = lessons.filter(l => l.path === 'ifmagic');
+    ifMagicLessons.forEach(l => TestUtils.completeLesson(l.id));
+    recheckAllPathCompletions();
+    console.log('✅ IF MAGIC path completed!');
+  },
+
+  /**
+   * Reset all lesson progress
+   */
+  resetAllProgress: () => {
+    const user = getCurrentUser();
+    if (!user) {
+      console.error('❌ No user logged in');
+      return;
+    }
+    const key = `completedLessons_${user.email}`;
+    localStorage.removeItem(key);
+    localStorage.removeItem('completedPaths');
+    console.log('✅ All progress reset! Refresh the page.');
+  },
+
+  /**
+   * Show current progress
+   */
+  showProgress: () => {
+    const completed = getCompletedLessons();
+    const paths = localStorage.getItem('completedPaths');
+    const gettingStartedLessons = lessons.filter(l => l.path === 'getting-started');
+    const ifMagicLessons = lessons.filter(l => l.path === 'ifmagic');
+    
+    console.log('📊 Current Progress:');
+    console.log(`  Completed Lessons: ${completed.length}`);
+    console.log(`  Completed IDs:`, completed);
+    console.log(`  Completed Paths:`, paths ? JSON.parse(paths) : []);
+    console.log(`  Getting Started: ${completed.filter(id => gettingStartedLessons.some(l => l.id === id)).length}/${gettingStartedLessons.length}`);
+    console.log(`  IF MAGIC: ${completed.filter(id => ifMagicLessons.some(l => l.id === id)).length}/${ifMagicLessons.length}`);
+  },
+
+  /**
+   * List all lesson IDs
+   */
+  listLessons: () => {
+    console.log('📚 Getting Started Lessons:');
+    lessons.filter(l => l.path === 'getting-started').forEach(l => 
+      console.log(`  ID: ${l.id} - ${l.title}`)
+    );
+    console.log('\n📚 IF MAGIC Lessons:');
+    lessons.filter(l => l.path === 'ifmagic').forEach(l => 
+      console.log(`  ID: ${l.id} - ${l.title}`)
+    );
+  }
+};
+
+// Expose to window for console access
+if (typeof window !== 'undefined') {
+  (window as any).HardwareHubTest = TestUtils;
+}

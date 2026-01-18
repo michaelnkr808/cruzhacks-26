@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { syncProgressWithBackend } from '../data/lessonData';
 import './Login.css';
 
 /**
@@ -106,6 +107,9 @@ function Login() {
             // Store user data and token
             localStorage.setItem('hardwareHubUser', JSON.stringify(data.user));
             localStorage.setItem('authToken', data.token);
+
+            // Sync progress from backend
+            await syncProgressWithBackend();
 
             // Redirect to learning page
             navigate('/learning');

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { syncProgressWithBackend } from '../data/lessonData';
 import './Signup.css';
 
 // TypeScript interface for our form data
@@ -138,6 +139,10 @@ function Signup() {
       if (!res.ok) throw new Error(data.error || 'Signup failed');
       localStorage.setItem('hardwareHubUser', JSON.stringify(data.user));
       localStorage.setItem('authToken', data.token);
+      
+      // Sync progress from backend
+      await syncProgressWithBackend();
+      
       navigate('/learning');
     } catch (err: any) {
       setError(err.message || 'Error creating account');
