@@ -2,6 +2,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { getLessonBySlug, lessons, markLessonComplete, isLessonCompleted } from '../data/lessonData';
 import Quiz from '../components/Quiz/Quiz';
+import Toast from '../components/Toast/Toast';
 import './Lesson.css';
 
 /**
@@ -35,11 +36,30 @@ function Lesson() {
   // Notes panel tab state
   const [activeTab, setActiveTab] = useState<'notes' | 'quiz'>('notes');
   
+  // Toast notification state
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  
   // Fetch the lesson data based on slug
   const lessonData = getLessonBySlug(slug || '');
   const lessonId = lessonData?.id || 0;
   
   const [completed, setCompleted] = useState(isLessonCompleted(lessonId));
+  
+  // Listen for path unlock events
+  useEffect(() => {
+    const handlePathUnlocked = (event: CustomEvent<{ pathId: string }>) => {
+      if (event.detail.pathId === 'getting-started') {
+        setToastMessage('🎉 Congratulations! You completed Getting Started! IF MAGIC path is now unlocked!');
+        setShowToast(true);
+      }
+    };
+    
+    window.addEventListener('pathUnlocked', handlePathUnlocked as EventListener);
+    return () => {
+      window.removeEventListener('pathUnlocked', handlePathUnlocked as EventListener);
+    };
+  }, []);
   
   // Load saved notes, completion status, and quiz state when component mounts or slug changes
   useEffect(() => {
@@ -145,6 +165,16 @@ function Lesson() {
 
   return (
     <div className="lesson-page">
+      {/* Toast notification for path unlock */}
+      {showToast && (
+        <Toast 
+          message={toastMessage} 
+          type="success" 
+          duration={6000}
+          onClose={() => setShowToast(false)} 
+        />
+      )}
+      
       {/* Back button */}
       <Link to="/learning" className="back-button">
         ← Back to Learning Track

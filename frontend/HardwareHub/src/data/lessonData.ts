@@ -1398,7 +1398,7 @@ export const markLessonComplete = async (lessonId: number): Promise<void> => {
   if (!user) return;
   
   const key = `completedLessons_${user.email}`;
-  const completed = getCompletedLessons();
+  let completed = getCompletedLessons();
   
   if (!completed.includes(lessonId)) {
     completed.push(lessonId);
@@ -1408,7 +1408,13 @@ export const markLessonComplete = async (lessonId: number): Promise<void> => {
   // Check if the current lesson's path is now fully complete
   const currentLesson = lessons.find(l => l.id === lessonId);
   if (currentLesson?.path) {
-    checkAndUpdatePathCompletion(currentLesson.path, completed);
+    const unlocked = checkAndUpdatePathCompletion(currentLesson.path, completed);
+    if (unlocked) {
+      // Dispatch a custom event so UI can show a notification
+      window.dispatchEvent(new CustomEvent('pathUnlocked', { 
+        detail: { pathId: currentLesson.path } 
+      }));
+    }
   }
   
   // Also sync with backend if user has an ID
@@ -1445,13 +1451,20 @@ export const markLessonComplete = async (lessonId: number): Promise<void> => {
 
 /**
  * Check if all lessons in a path are complete and update completedPaths
+ * Returns true if a new path was unlocked
  */
-const checkAndUpdatePathCompletion = (pathId: string, completedLessonIds: number[]): void => {
+const checkAndUpdatePathCompletion = (pathId: string, completedLessonIds: number[]): boolean => {
   // Get all lessons for this path
   const pathLessons = lessons.filter(l => l.path === pathId);
   
+  console.log(`[Path Check] Checking "${pathId}": ${completedLessonIds.length} completed, need ${pathLessons.length} lessons`);
+  console.log(`[Path Check] Path lesson IDs:`, pathLessons.map(l => l.id));
+  console.log(`[Path Check] Completed lesson IDs:`, completedLessonIds);
+  
   // Check if all lessons in the path are completed
   const allCompleted = pathLessons.every(lesson => completedLessonIds.includes(lesson.id));
+  
+  console.log(`[Path Check] All completed: ${allCompleted}`);
   
   if (allCompleted && pathLessons.length > 0) {
     // Get current completed paths from localStorage
@@ -1463,8 +1476,10 @@ const checkAndUpdatePathCompletion = (pathId: string, completedLessonIds: number
       completedPaths.push(pathId);
       localStorage.setItem('completedPaths', JSON.stringify(completedPaths));
       console.log(`🎉 Path "${pathId}" completed! Other paths are now unlocked.`);
+      return true;
     }
   }
+  return false;
 };
 
 interface ProgressRecord {
