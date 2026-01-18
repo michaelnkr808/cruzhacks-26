@@ -12,27 +12,6 @@ import ProjectEditor from './pages/ProjectEditor';
 import Notes from './pages/Notes';
 import './App.css';
 
-/**
- * Main App Component - The "brain" of the application
- * 
- * Key Concepts Here:
- * 
- * 1. BrowserRouter: Enables routing in React
- *    - Without this, clicking links would refresh the whole page
- *    - With it, navigation is instant and smooth (Single Page App!)
- * 
- * 2. Routes & Route: Define which component shows for each URL
- *    - "/" → Home page
- *    - "/learning" → Learning path selection
- *    - "/track/:pathId" → Learning track for a specific hardware platform
- *    - "/lesson/:id" → Individual lesson (":id" is a dynamic parameter)
- *    - "/profile" → User profile
- * 
- * 3. Layout: A wrapper component that shows on every page
- *    - Contains the header/navigation
- *    - Uses <Outlet /> to render child pages
- */
-
 function App() {
   return (
     <BrowserRouter>

@@ -37,7 +37,7 @@ export const useAuth = () => {
 
 interface AuthProviderProps {
   children: ReactNode;
-  skipAuth0?: boolean; // Skip Auth0 for non-secure origins
+  skipAuth0?: boolean; 
 }
 
 // Provider that uses Auth0
@@ -71,10 +71,10 @@ const AuthProviderWithAuth0 = ({ children }: { children: ReactNode }) => {
     checkSession();
   }, []);
 
-  // Send OTP to user's email
+  // Send OTP to user's email via Auth0 passwordless
   const sendOTP = async (email: string) => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/send-otp`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/otp/request`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -92,10 +92,10 @@ const AuthProviderWithAuth0 = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Login with OTP
+  // Login with OTP via Auth0 passwordless verification
   const login = async (email: string, otp: string) => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/verify-otp`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/otp/verify`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -158,7 +158,6 @@ const AuthProviderWithAuth0 = ({ children }: { children: ReactNode }) => {
       localStorage.setItem('auth_token', data.token);
     } catch (error) {
       console.error('Token refresh error:', error);
-      // If refresh fails, logout user
       logout();
       throw error;
     }

@@ -1,7 +1,7 @@
 @import "tailwindcss";
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700;800&display=swap');
 
-/* Global CSS Variables - Hacker Theme */
+/* Global CSS Variables */
 :root {
   --bg-primary: #0a0e27;
   --bg-secondary: #16213e;
@@ -98,7 +98,7 @@
     100% { background-position: 50px 50px; }
   }
 
-  /* Custom scrollbar for hacker theme */
+  /* Custom scrollbar */
   ::-webkit-scrollbar {
     width: 10px;
     height: 10px;

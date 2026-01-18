@@ -1,14 +1,4 @@
-/**
- * Quiz Component Styles
- * 
- * Follows HardwareHub's design language:
- * - Dark theme with accent colors
- * - Geometric patterns and icons
- * - Clean, modern UI
- * - Supports both modal and inline modes
- */
 
-/* Overlay - covers entire screen (modal mode) */
 .quiz-overlay {
   position: fixed;
   top: 0;
@@ -24,7 +14,6 @@
   animation: fadeIn 0.2s ease-out;
 }
 
-/* Inline mode - fits in parent container */
 .quiz-inline {
   display: flex;
   flex-direction: column;
@@ -44,7 +33,6 @@
   to { opacity: 1; }
 }
 
-/* Modal container */
 .quiz-modal {
   background: linear-gradient(145deg, #1a1a2e 0%, #16213e 100%);
   border: 1px solid rgba(100, 255, 218, 0.2);
@@ -57,7 +45,6 @@
   animation: slideUp 0.3s ease-out;
 }
 
-/* Inline container */
 .quiz-inline-container {
   background: transparent;
   padding: 0;
