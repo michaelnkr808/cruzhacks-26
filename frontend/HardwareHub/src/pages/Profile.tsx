@@ -55,6 +55,26 @@ function Profile() {
   const [quizzesPassed, setQuizzesPassed] = useState(0);
   const [perfectQuizzes, setPerfectQuizzes] = useState(0);
   const [showResetModal, setShowResetModal] = useState(false);
+  const [gettingStartedComplete, setGettingStartedComplete] = useState(false);
+  const [ifmagicComplete, setIfmagicComplete] = useState(false);
+  
+  // Dev mode - only show progress management when enabled
+  // Enable via: URL ?dev=true OR localStorage.setItem('devMode', 'true')
+  const [devMode, setDevMode] = useState(false);
+
+  // Check for dev mode on mount
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const devParam = urlParams.get('dev') === 'true';
+    const devStorage = localStorage.getItem('devMode') === 'true';
+    
+    if (devParam) {
+      localStorage.setItem('devMode', 'true');
+      setDevMode(true);
+    } else if (devStorage) {
+      setDevMode(true);
+    }
+  }, []);
 
   useEffect(() => {
     const user = localStorage.getItem('hardwareHubUser');
@@ -96,9 +116,15 @@ function Profile() {
       }
       
       // Check if paths are completed
-      const gettingStartedLessons = completed.filter((id: number) => id <= 2); // IDs 0-2 are getting started
-      const ifmagicLessons = completed.filter((id: number) => id >= 3); // IDs 3+ are IF MAGIC
-      const pathsCompleted = (gettingStartedLessons.length >= 3 ? 1 : 0) + (ifmagicLessons.length >= 29 ? 1 : 0);
+      // Getting started: IDs 0, -1, -2, -3, -4 (5 lessons)
+      const gettingStartedIds = [0, -1, -2, -3, -4];
+      const gettingStartedLessons = completed.filter((id: number) => gettingStartedIds.includes(id));
+      const ifmagicLessons = completed.filter((id: number) => id >= 1 && id <= 27); // IDs 1-27 are IF MAGIC
+      const isGettingStartedComplete = gettingStartedLessons.length >= 5;
+      const isIfmagicComplete = ifmagicLessons.length >= 27;
+      setGettingStartedComplete(isGettingStartedComplete);
+      setIfmagicComplete(isIfmagicComplete);
+      const pathsCompleted = (isGettingStartedComplete ? 1 : 0) + (isIfmagicComplete ? 1 : 0);
       
       // Check achievements based on local progress
       checkLocalAchievements(completed.length, passedQuizzes, noteCount, perfectScores, pathsCompleted);
@@ -190,6 +216,90 @@ function Profile() {
     navigate('/');
   };
 
+  // Add Getting Started progress
+  const addGettingStartedProgress = () => {
+    const gettingStartedIds = [0, -1, -2, -3, -4];
+    const existingCompleted = JSON.parse(localStorage.getItem('completedLessons') || '[]');
+    const newCompleted = [...new Set([...existingCompleted, ...gettingStartedIds])];
+    localStorage.setItem('completedLessons', JSON.stringify(newCompleted));
+    
+    // Mark each lesson as completed
+    gettingStartedIds.forEach(id => {
+      localStorage.setItem(`lesson-${id}-completed`, 'true');
+    });
+    
+    // Update state
+    setCompletedCount(newCompleted.length);
+    setGettingStartedComplete(true);
+    setShowProgressModal(false);
+    
+    // Refresh achievements
+    window.location.reload();
+  };
+
+  // Remove Getting Started progress
+  const removeGettingStartedProgress = () => {
+    const gettingStartedIds = [0, -1, -2, -3, -4];
+    const existingCompleted = JSON.parse(localStorage.getItem('completedLessons') || '[]');
+    const newCompleted = existingCompleted.filter((id: number) => !gettingStartedIds.includes(id));
+    localStorage.setItem('completedLessons', JSON.stringify(newCompleted));
+    
+    // Remove lesson completion flags
+    gettingStartedIds.forEach(id => {
+      localStorage.removeItem(`lesson-${id}-completed`);
+    });
+    
+    // Update state
+    setCompletedCount(newCompleted.length);
+    setGettingStartedComplete(false);
+    setShowProgressModal(false);
+    
+    // Refresh achievements
+    window.location.reload();
+  };
+
+  // Add IF MAGIC progress
+  const addIfmagicProgress = () => {
+    const ifmagicIds = Array.from({ length: 27 }, (_, i) => i + 1); // 1-27
+    const existingCompleted = JSON.parse(localStorage.getItem('completedLessons') || '[]');
+    const newCompleted = [...new Set([...existingCompleted, ...ifmagicIds])];
+    localStorage.setItem('completedLessons', JSON.stringify(newCompleted));
+    
+    // Mark each lesson as completed
+    ifmagicIds.forEach(id => {
+      localStorage.setItem(`lesson-${id}-completed`, 'true');
+    });
+    
+    // Update state
+    setCompletedCount(newCompleted.length);
+    setIfmagicComplete(true);
+    setShowProgressModal(false);
+    
+    // Refresh achievements
+    window.location.reload();
+  };
+
+  // Remove IF MAGIC progress
+  const removeIfmagicProgress = () => {
+    const ifmagicIds = Array.from({ length: 27 }, (_, i) => i + 1); // 1-27
+    const existingCompleted = JSON.parse(localStorage.getItem('completedLessons') || '[]');
+    const newCompleted = existingCompleted.filter((id: number) => !ifmagicIds.includes(id));
+    localStorage.setItem('completedLessons', JSON.stringify(newCompleted));
+    
+    // Remove lesson completion flags
+    ifmagicIds.forEach(id => {
+      localStorage.removeItem(`lesson-${id}-completed`);
+    });
+    
+    // Update state
+    setCompletedCount(newCompleted.length);
+    setIfmagicComplete(false);
+    setShowProgressModal(false);
+    
+    // Refresh achievements
+    window.location.reload();
+  };
+
   // Reset all progress - called when user confirms
   const confirmResetProgress = () => {
     // Get all localStorage keys first (can't modify while iterating)
@@ -219,6 +329,8 @@ function Profile() {
     setCompletedCount(0);
     setQuizzesPassed(0);
     setPerfectQuizzes(0);
+    setGettingStartedComplete(false);
+    setIfmagicComplete(false);
     setAchievements(localAchievements.map(a => ({ ...a, earned: false, earnedAt: undefined })));
     
     // Close modal
@@ -548,6 +660,77 @@ function Profile() {
             </div>
           </div>
         </div>
+
+        {/* Progress Management Section - Dev/Testing Only */}
+        {devMode && (
+          <div className="section progress-management">
+            <h2 className="section-title">▸ Progress Management <span className="dev-badge">DEV</span></h2>
+            <p className="section-description">Manually add or remove lesson completion progress for testing or demo purposes.</p>
+            <div className="progress-controls">
+              <div className="progress-path-card">
+                <div className="path-header">
+                  <span className="path-icon">★</span>
+                  <span className="path-name">Getting Started</span>
+                  <span className={`path-status ${gettingStartedComplete ? 'complete' : 'incomplete'}`}>
+                    {gettingStartedComplete ? '✓ Complete' : '○ Incomplete'}
+                  </span>
+                </div>
+                <p className="path-info">5 introductory lessons</p>
+                <div className="path-actions">
+                  <button 
+                    className="add-progress-btn" 
+                    onClick={addGettingStartedProgress}
+                    disabled={gettingStartedComplete}
+                  >
+                    + Add Progress
+                  </button>
+                  <button 
+                    className="remove-progress-btn" 
+                    onClick={removeGettingStartedProgress}
+                    disabled={!gettingStartedComplete}
+                  >
+                    − Remove Progress
+                  </button>
+                </div>
+              </div>
+              <div className="progress-path-card">
+                <div className="path-header">
+                  <span className="path-icon">◆</span>
+                  <span className="path-name">IF MAGIC Path</span>
+                  <span className={`path-status ${ifmagicComplete ? 'complete' : 'incomplete'}`}>
+                    {ifmagicComplete ? '✓ Complete' : '○ Incomplete'}
+                  </span>
+                </div>
+                <p className="path-info">27 comprehensive lessons</p>
+                <div className="path-actions">
+                  <button 
+                    className="add-progress-btn" 
+                    onClick={addIfmagicProgress}
+                    disabled={ifmagicComplete}
+                  >
+                    + Add Progress
+                  </button>
+                  <button 
+                    className="remove-progress-btn" 
+                    onClick={removeIfmagicProgress}
+                    disabled={!ifmagicComplete}
+                  >
+                    − Remove Progress
+                  </button>
+                </div>
+              </div>
+            </div>
+            <button 
+              className="disable-dev-btn" 
+              onClick={() => {
+                localStorage.removeItem('devMode');
+                setDevMode(false);
+              }}
+            >
+              Disable Dev Mode
+            </button>
+          </div>
+        )}
 
         {/* Danger Zone */}
         <div className="section danger-zone">
