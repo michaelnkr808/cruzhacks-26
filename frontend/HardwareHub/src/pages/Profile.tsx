@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getCompletedLessons } from '../data/lessonData';
+import { getCompletedLessons, setUserLevel, getIfMagicLessonsByLevel } from '../data/lessonData';
 import './Profile.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
@@ -708,6 +708,53 @@ function Profile() {
                 </div>
               </div>
             </div>
+            
+            {/* Dev Level Selector */}
+            <div className="dev-level-section">
+              <h3 className="dev-subtitle">Experience Level Override</h3>
+              <p className="section-description">
+                Manually set your account level. This affects which lessons are unlocked.
+                <br />
+                <span className="level-info">
+                  Beginner: {getIfMagicLessonsByLevel('beginner').length} lessons | 
+                  Intermediate: {getIfMagicLessonsByLevel('intermediate').length} lessons | 
+                  Advanced: {getIfMagicLessonsByLevel('advanced').length} lessons
+                </span>
+              </p>
+              <div className="level-buttons">
+                <button 
+                  className={`level-btn ${userData?.level === 'beginner' ? 'active' : ''}`}
+                  onClick={() => {
+                    setUserLevel('beginner');
+                    setUserData({ ...userData, level: 'beginner' });
+                  }}
+                >
+                  🌱 Beginner
+                </button>
+                <button 
+                  className={`level-btn ${userData?.level === 'intermediate' ? 'active' : ''}`}
+                  onClick={() => {
+                    setUserLevel('intermediate');
+                    setUserData({ ...userData, level: 'intermediate' });
+                  }}
+                >
+                  🌿 Intermediate
+                </button>
+                <button 
+                  className={`level-btn ${userData?.level === 'advanced' ? 'active' : ''}`}
+                  onClick={() => {
+                    setUserLevel('advanced');
+                    setUserData({ ...userData, level: 'advanced' });
+                  }}
+                >
+                  🌳 Advanced
+                </button>
+              </div>
+              <p className="current-level-display">
+                Current Level: <span className="level-value">{userData?.level || 'beginner'}</span>
+              </p>
+            </div>
+            
             <button 
               className="disable-dev-btn" 
               onClick={() => {

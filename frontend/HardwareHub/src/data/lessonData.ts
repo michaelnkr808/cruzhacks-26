@@ -1556,6 +1556,78 @@ const getApiUrl = (): string => {
 const API_URL = getApiUrl();
 
 /**
+ * USER LEVEL PROGRESSION
+ * Automatically progress user level based on completed lessons
+ */
+
+// Get all IF MAGIC lessons by required level
+export const getIfMagicLessonsByLevel = (level: UserLevel): Lesson[] => {
+  return lessons.filter(l => l.path === 'ifmagic' && l.requiredLevel === level);
+};
+
+// Check and update user level based on completed IF MAGIC lessons
+export const checkAndUpdateUserLevel = (): { newLevel: UserLevel | null, message: string | null } => {
+  const user = getCurrentUser();
+  if (!user) return { newLevel: null, message: null };
+  
+  const completed = getCompletedLessons();
+  const currentLevel = user.level || 'beginner';
+  
+  // Get IF MAGIC lessons for each level
+  const beginnerLessons = getIfMagicLessonsByLevel('beginner');
+  const intermediateLessons = getIfMagicLessonsByLevel('intermediate');
+  
+  // Check beginner → intermediate progression
+  const allBeginnerComplete = beginnerLessons.every(l => completed.includes(l.id));
+  
+  // Check intermediate → advanced progression
+  const allIntermediateComplete = intermediateLessons.every(l => completed.includes(l.id));
+  
+  let newLevel: UserLevel | null = null;
+  let message: string | null = null;
+  
+  if (currentLevel === 'beginner' && allBeginnerComplete) {
+    newLevel = 'intermediate';
+    message = '🎉 Congratulations! You\'ve completed all beginner lessons and advanced to Intermediate level!';
+  } else if (currentLevel === 'intermediate' && allBeginnerComplete && allIntermediateComplete) {
+    newLevel = 'advanced';
+    message = '🏆 Amazing! You\'ve mastered intermediate content and reached Advanced level!';
+  }
+  
+  // Update user level if progression happened
+  if (newLevel) {
+    const updatedUser = { ...user, level: newLevel };
+    localStorage.setItem('hardwareHubUser', JSON.stringify(updatedUser));
+    
+    // Dispatch event for UI updates
+    window.dispatchEvent(new CustomEvent('levelUp', { 
+      detail: { oldLevel: currentLevel, newLevel, message } 
+    }));
+  }
+  
+  return { newLevel, message };
+};
+
+// Manually set user level (for dev/testing)
+export const setUserLevel = (level: UserLevel): void => {
+  const user = getCurrentUser();
+  if (!user) return;
+  
+  const updatedUser = { ...user, level };
+  localStorage.setItem('hardwareHubUser', JSON.stringify(updatedUser));
+  
+  window.dispatchEvent(new CustomEvent('levelChanged', { 
+    detail: { level } 
+  }));
+};
+
+// Get current user level
+export const getUserLevel = (): UserLevel => {
+  const user = getCurrentUser();
+  return user?.level || 'beginner';
+};
+
+/**
  * LESSON PROGRESS TRACKING (localStorage + backend sync)
  * These functions track which lessons a user has completed
  */
@@ -1629,6 +1701,9 @@ export const markLessonComplete = async (lessonId: number): Promise<void> => {
       console.log('Backend sync failed, using local storage only');
     }
   }
+  
+  // Check for level progression after completing a lesson
+  checkAndUpdateUserLevel();
 };
 
 /**
