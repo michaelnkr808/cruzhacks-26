@@ -1,5 +1,7 @@
 {
   "version": 2,
+  "installCommand": "echo 'Skipping install - using bundled file'",
+  "buildCommand": "echo 'Skipping build - using pre-bundled file'",
   "builds": [
     {
       "src": "api/index.mjs",
