@@ -45,7 +45,24 @@ function Profile() {
   const navigate = useNavigate();
   const [userData, setUserData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [achievements, setAchievements] = useState<Achievement[]>(localAchievements);
+  
+  // Load achievements from localStorage if available, otherwise use defaults
+  const [achievements, setAchievements] = useState<Achievement[]>(() => {
+    const saved = localStorage.getItem('earnedAchievements');
+    if (saved) {
+      try {
+        const earnedIds = JSON.parse(saved) as string[];
+        return localAchievements.map(a => ({
+          ...a,
+          earned: earnedIds.includes(a.id)
+        }));
+      } catch {
+        return localAchievements;
+      }
+    }
+    return localAchievements;
+  });
+  
   const [completedCount, setCompletedCount] = useState(0);
   const [quizzesPassed, setQuizzesPassed] = useState(0);
   const [perfectQuizzes, setPerfectQuizzes] = useState(0);
@@ -56,6 +73,12 @@ function Profile() {
   // Dev mode - only show progress management when enabled
   // Enable via: URL ?dev=true OR localStorage.setItem('devMode', 'true')
   const [devMode, setDevMode] = useState(false);
+
+  // Save earned achievements to localStorage whenever they change
+  useEffect(() => {
+    const earnedIds = achievements.filter(a => a.earned).map(a => a.id);
+    localStorage.setItem('earnedAchievements', JSON.stringify(earnedIds));
+  }, [achievements]);
 
   // Check for dev mode on mount
   useEffect(() => {
@@ -227,7 +250,14 @@ function Profile() {
       if (response.ok) {
         const data = await response.json();
         if (data.achievements) {
-          setAchievements(data.achievements);
+          // Merge API achievements with current state - keep earned status from either source
+          setAchievements(prev => prev.map(localAchievement => {
+            const apiAchievement = data.achievements.find((a: Achievement) => a.id === localAchievement.id);
+            // Achievement is earned if either local or API says it's earned
+            const earned = localAchievement.earned || (apiAchievement?.earned ?? false);
+            const earnedAt = localAchievement.earnedAt || apiAchievement?.earnedAt;
+            return { ...localAchievement, earned, earnedAt };
+          }));
         }
       }
     } catch (error) {
