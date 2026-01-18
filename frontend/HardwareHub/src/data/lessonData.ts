@@ -34,7 +34,7 @@ export interface Lesson {
   status: 'completed' | 'available' | 'locked';
   module?: string; // IF MAGIC module name
   category: 'getting-started' | 'foundation' | 'sensor' | 'output' | 'advanced';
-  requiredLevel: UserLevel; // NEW: Minimum user level required
+  requiredLevel: UserLevel; // Minimum user level required
   path?: 'getting-started' | 'ifmagic'; // Which learning path this belongs to
   content: {
     overview: string;

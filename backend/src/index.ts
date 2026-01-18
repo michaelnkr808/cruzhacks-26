@@ -11,6 +11,7 @@ import progressRoutes from './routes/progress';
 import notesRoutes from './routes/notes';
 import usersRoutes from './routes/users';
 import projectsRoutes from './routes/projects';
+import quizRoutes from './routes/quiz';
 
 // Create Hono app
 const app = new Hono();
@@ -51,6 +52,7 @@ app.route('/api/progress', progressRoutes);
 app.route('/api/notes', notesRoutes);
 app.route('/api/users', usersRoutes);
 app.route('/api/projects', projectsRoutes);
+app.route('/api/quiz', quizRoutes);
 
 // 404 handler
 app.notFound((c) => {

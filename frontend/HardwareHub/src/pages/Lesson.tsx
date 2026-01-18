@@ -1,6 +1,7 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { getLessonBySlug, lessons, markLessonComplete, isLessonCompleted } from '../data/lessonData';
+import Quiz from '../components/Quiz/Quiz';
 import './Lesson.css';
 
 /**
@@ -28,13 +29,21 @@ function Lesson() {
   const [notes, setNotes] = useState('');
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   
+  // Quiz state
+  const [showQuiz, setShowQuiz] = useState(false);
+  const [quizScore, setQuizScore] = useState<{ score: number; total: number } | null>(null);
+  const [quizPassed, setQuizPassed] = useState(false);
+  
+  // Notes panel tab state
+  const [activeTab, setActiveTab] = useState<'notes' | 'quiz'>('notes');
+  
   // Fetch the lesson data based on slug
   const lessonData = getLessonBySlug(slug || '');
   const lessonId = lessonData?.id || 0;
   
   const [completed, setCompleted] = useState(isLessonCompleted(lessonId));
   
-  // Load saved notes and completion status when component mounts or slug changes
+  // Load saved notes, completion status, and quiz state when component mounts or slug changes
   useEffect(() => {
     const savedNotes = localStorage.getItem(`lesson-${slug}-notes`);
     if (savedNotes) {
@@ -42,6 +51,16 @@ function Lesson() {
     } else {
       setNotes(''); // Clear notes if switching to a lesson with no saved notes
     }
+    
+    // Load quiz pass status for this lesson
+    const savedQuizPass = localStorage.getItem(`lesson-${slug}-quiz-passed`);
+    setQuizPassed(savedQuizPass === 'true');
+    
+    // Reset quiz state when changing lessons
+    setQuizScore(null);
+    setShowQuiz(false);
+    setActiveTab('notes');
+    
     if (lessonData) {
       setCompleted(isLessonCompleted(lessonData.id));
     }
@@ -78,6 +97,32 @@ function Lesson() {
       navigate(`/track/${lessonData.path || 'ifmagic'}`);
     }
   };
+  
+  // Build lesson content string for quiz
+  const getLessonContentForQuiz = (): string => {
+    if (!lessonData) return '';
+    
+    const sections = lessonData.content.sections
+      .map(s => `${s.title}: ${s.text}`)
+      .join('\n\n');
+    
+    return `${lessonData.content.overview}\n\n${sections}`;
+  };
+  
+  // Handle quiz completion
+  const handleQuizComplete = (score: number, total: number) => {
+    setQuizScore({ score, total });
+    // If user scores 80% or higher, mark quiz as passed and allow progression
+    if (score / total >= 0.8 && lessonData) {
+      setQuizPassed(true);
+      localStorage.setItem(`lesson-${slug}-quiz-passed`, 'true');
+      markLessonComplete(lessonData.id);
+      setCompleted(true);
+    }
+  };
+  
+  // Check if user can progress to next lesson
+  const canProgress = quizPassed || completed;
   
   // Handle case where lesson doesn't exist (good error handling!)
   if (!lessonData) {
@@ -208,47 +253,106 @@ function Lesson() {
                 ← Previous Lesson
               </button>
               <button 
-                className="nav-btn primary"
-                onClick={handleCompleteAndNext}
+                className={`nav-btn primary ${!canProgress ? 'locked' : ''}`}
+                onClick={canProgress ? handleCompleteAndNext : () => setActiveTab('quiz')}
+                title={!canProgress ? 'Complete the quiz with 80%+ to unlock' : ''}
               >
-                {completed ? 'Next Lesson →' : 'Mark Complete & Next →'}
+                {!canProgress ? '🔒 Take Quiz to Unlock' : completed ? 'Next Lesson →' : 'Complete & Next →'}
               </button>
             </div>
+            
+            {/* Quiz requirement notice */}
+            {!canProgress && (
+              <div className="quiz-required-notice">
+                <span className="notice-icon">◈</span>
+                <p>Complete the knowledge check quiz with 80% or higher to unlock the next lesson.</p>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Right side - Notes panel (OpenNotes simulation) */}
+        {/* Right side - Notes panel with tabs */}
         <div className="notes-panel">
-          <div className="notes-header">
-            <h3>◈ Your Notes</h3>
-            <small>Powered by OpenNotes</small>
+          {/* Tab Navigation */}
+          <div className="panel-tabs">
+            <button 
+              className={`panel-tab ${activeTab === 'notes' ? 'active' : ''}`}
+              onClick={() => setActiveTab('notes')}
+            >
+              ◈ Notes
+            </button>
+            <button 
+              className={`panel-tab ${activeTab === 'quiz' ? 'active' : ''} ${!quizPassed ? 'required' : 'passed'}`}
+              onClick={() => setActiveTab('quiz')}
+            >
+              {quizPassed ? '✓ Quiz' : '▶ Quiz'}
+              {!quizPassed && <span className="required-badge">Required</span>}
+            </button>
           </div>
-          <textarea
-            className="notes-textarea"
-            placeholder="Take notes as you learn...
+          
+          {/* Notes Tab Content */}
+          {activeTab === 'notes' && (
+            <>
+              <div className="notes-header">
+                <h3>Your Notes</h3>
+                <small>Powered by OpenNote</small>
+              </div>
+              <textarea
+                className="notes-textarea"
+                placeholder="Take notes as you learn...
 
 Tips for effective notes:
 • Summarize key concepts
 • Write questions you have
 • Note things to practice
 • Draw connections to other lessons"
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-          />
-          <div className="notes-footer">
-            <span className="character-count">
-              {notes.length} characters
-            </span>
-            <button 
-              className="save-notes-btn"
-              onClick={saveNotes}
-              disabled={saveStatus === 'saving'}
-            >
-              {saveStatus === 'saving' && '◷ Saving...'}
-              {saveStatus === 'saved' && '✓ Saved!'}
-              {saveStatus === 'idle' && '✓ Save Notes'}
-            </button>
-          </div>
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+              />
+              <div className="notes-footer">
+                <span className="character-count">
+                  {notes.length} characters
+                </span>
+                <button 
+                  className="save-notes-btn"
+                  onClick={saveNotes}
+                  disabled={saveStatus === 'saving'}
+                >
+                  {saveStatus === 'saving' && '◷ Saving...'}
+                  {saveStatus === 'saved' && '✓ Saved!'}
+                  {saveStatus === 'idle' && '✓ Save Notes'}
+                </button>
+              </div>
+              
+              {/* Prompt to take quiz */}
+              {!quizPassed && (
+                <div className="quiz-prompt">
+                  <p>📝 Ready to test your knowledge?</p>
+                  <button 
+                    className="take-quiz-btn"
+                    onClick={() => setActiveTab('quiz')}
+                  >
+                    Take Quiz →
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+          
+          {/* Quiz Tab Content */}
+          {activeTab === 'quiz' && lessonData && (
+            <div className="quiz-tab-content">
+              <Quiz
+                lessonTitle={lessonData.title}
+                lessonSlug={lessonData.slug}
+                lessonContent={getLessonContentForQuiz()}
+                userNotes={notes}
+                onClose={() => setActiveTab('notes')}
+                onComplete={handleQuizComplete}
+                inline={true}
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>
