@@ -6,7 +6,7 @@ const app = new Hono();
 // Get all projects for current user (uses userId from auth middleware)
 app.get('/', async (c) => {
   try {
-    const userId = c.get('userId');
+    const userId = c.req.header('x-user-id') || (c as any).get('userId');
     
     if (!userId) {
       return c.json({ projects: [] });

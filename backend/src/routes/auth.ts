@@ -288,33 +288,14 @@ app.post('/send-otp', async (c) => {
       .eq('email', email)
       .maybeSingle();
 
-    // Try to send passwordless email with OTP via Auth0
-    try {
-      await auth0Authentication.passwordless.sendEmail({
-        email,
-        send: 'code',
-        authParams: {
-          connection: 'email',
-        },
-      });
-      
-      return c.json({ 
-        success: true,
-        isNewUser: !existingUser,
-        message: 'OTP sent successfully'
-      }, 200);
-    } catch (auth0Error: any) {
-      console.log('Auth0 error, falling back to demo mode:', auth0Error.message);
-      
-      // Fallback to demo mode if Auth0 is not properly configured
-      console.log(`[DEMO] Would send OTP to: ${email}`);
-      
-      return c.json({ 
-        success: true,
-        isNewUser: !existingUser,
-        message: 'OTP sent successfully (demo mode)'
-      }, 200);
-    }
+    // Demo mode - in production, integrate with Auth0 passwordless
+    console.log(`[DEMO] Would send OTP to: ${email}`);
+    
+    return c.json({ 
+      success: true,
+      isNewUser: !existingUser,
+      message: 'OTP sent successfully (demo mode)'
+    }, 200);
   } catch (error: any) {
     console.error('Send OTP error:', error);
     return c.json({ error: error.message || 'Failed to send OTP' }, 500);
@@ -331,109 +312,55 @@ app.post('/verify-otp', async (c) => {
       return c.json({ error: 'Email and OTP are required' }, 400);
     }
 
-    // Try to verify OTP with Auth0 first
-    try {
-      // Verify OTP with Auth0 and get tokens
-      const { data } = await auth0Authentication.passwordless.loginWithEmail({
-        email,
-        code: otp,
-        authParams: {
-          connection: 'email',
-        },
-      });
+    // Demo mode - in production, verify with Auth0 passwordless
+    console.log(`[DEMO] Verifying OTP for: ${email}, code: ${otp}`);
 
-      // Get user info from Auth0
-      const userInfo = await auth0Authentication.getProfile(data.access_token);
-      
-      // Check if user exists in our database
-      const { data: existingUser } = await supabase
-        .from('users')
-        .select('*')
-        .eq('auth0_id', userInfo.sub)
-        .maybeSingle();
-
-      let user;
-      if (existingUser) {
-        user = existingUser;
-      } else {
-        // Create new user in our database
-        const { data: newUser, error } = await supabase
-          .from('users')
-          .insert([{
-            email: userInfo.email || email,
-            name: userInfo.name || userInfo.nickname || email.split('@')[0],
-            level: 'beginner',
-            auth0_id: userInfo.sub,
-            avatar_url: userInfo.picture,
-          }])
-          .select()
-          .single();
-
-        if (error) {
-          throw error;
-        }
-        user = newUser;
-      }
-
-      return c.json({
-        user,
-        token: data.access_token,
-        refreshToken: data.refresh_token,
-        expiresIn: data.expires_in,
-      }, 200);
-    } catch (auth0Error: any) {
-      console.log('Auth0 verification error, falling back to demo mode:', auth0Error.message);
-      
-      // Fallback to demo mode if Auth0 is not properly configured
-      console.log(`[DEMO] Verifying OTP for: ${email}, code: ${otp}`);
-
-      // For demo purposes, accept any 6-digit OTP
-      if (otp.length !== 6) {
-        return c.json({ error: 'Invalid OTP format' }, 400);
-      }
-
-      // Generate a mock Auth0 user ID for demo purposes
-      const mockAuth0Id = `auth0|${Date.now()}`;
-      
-      // Check if user exists
-      const { data: existingUser } = await supabase
-        .from('users')
-        .select('*')
-        .eq('email', email)
-        .maybeSingle();
-
-      let user;
-      if (existingUser) {
-        user = existingUser;
-      } else {
-        // Create new user
-        const { data, error } = await supabase
-          .from('users')
-          .insert([{
-            email,
-            name: email.split('@')[0], // Default name from email
-            level: 'beginner',
-            auth0_id: mockAuth0Id,
-          }])
-          .select()
-          .single();
-
-        if (error) {
-          throw error;
-        }
-        user = data;
-      }
-
-      // Generate mock JWT token (in production, use Auth0's real tokens)
-      const mockToken = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI${mockAuth0Id}In0.${Buffer.from('mock-signature').toString('base64')}`;
-
-      return c.json({
-        user,
-        token: mockToken,
-        expiresIn: 3600, // 1 hour
-        message: 'Login successful (demo mode)'
-      }, 200);
+    // For demo purposes, accept any 6-digit OTP
+    if (otp.length !== 6) {
+      return c.json({ error: 'Invalid OTP format' }, 400);
     }
+
+    // Generate a mock Auth0 user ID for demo purposes
+    const mockAuth0Id = `auth0|${Date.now()}`;
+    
+    // Check if user exists
+    const { data: existingUser } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', email)
+      .maybeSingle();
+
+    let user;
+    if (existingUser) {
+      user = existingUser;
+    } else {
+      // Create new user
+      const { data, error } = await supabase
+        .from('users')
+        .insert([{
+          email,
+          name: email.split('@')[0], // Default name from email
+          level: 'beginner',
+          auth0_id: mockAuth0Id,
+        }])
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
+      }
+      user = data;
+    }
+
+    // Generate mock JWT token (in production, use Auth0's real tokens)
+    const mockToken = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI${mockAuth0Id}In0.${Buffer.from('mock-signature').toString('base64')}`;
+
+    return c.json({
+      user,
+      token: mockToken,
+      expiresIn: 3600, // 1 hour
+      message: 'Login successful (demo mode)'
+    }, 200);
   } catch (error: any) {
     console.error('Verify OTP error:', error);
     return c.json({ error: error.message || 'Failed to verify OTP' }, 500);

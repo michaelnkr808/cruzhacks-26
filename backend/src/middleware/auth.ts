@@ -45,11 +45,11 @@ export const authMiddleware = async (c: Context, next: Next) => {
     // Production JWT verification
     const jwksUrl = `https://${process.env.AUTH0_DOMAIN}/.well-known/jwks.json`;
     const jwksResponse = await fetch(jwksUrl);
-    const jwks = await jwksResponse.json();
+    const jwks = await jwksResponse.json() as { keys: Array<{ kid: string; [key: string]: any }> };
     
     // Get the key ID from token header
     const tokenHeader = JSON.parse(Buffer.from(token.split('.')[0], 'base64').toString());
-    const key = jwks.keys.find((k: any) => k.kid === tokenHeader.kid);
+    const key = jwks.keys.find((k) => k.kid === tokenHeader.kid);
     
     if (!key) {
       return c.json({ error: 'Invalid token signature' }, 401);
