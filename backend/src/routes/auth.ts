@@ -4,7 +4,7 @@ import { auth0Authentication } from '../lib/auth0';
 
 const app = new Hono();
 
-// OTP Request - Send OTP to email via Auth0
+// OTP Request - send OTP to email via Auth0
 app.post('/otp/request', async (c) => {
   try {
     const body = await c.req.json();
@@ -14,7 +14,7 @@ app.post('/otp/request', async (c) => {
       return c.json({ error: 'Email is required' }, 400);
     }
 
-    // Call Auth0's passwordless API to send OTP
+    // call Auth0's passwordless API to send OTP
     const sendResponse = await fetch(`https://${process.env.AUTH0_DOMAIN}/passwordless/start`, {
       method: 'POST',
       headers: {

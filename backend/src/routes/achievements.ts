@@ -3,7 +3,7 @@ import { supabase } from '../supabase';
 
 const app = new Hono();
 
-// Achievement definitions
+// achievement definitions
 export interface Achievement {
   id: string;
   name: string;
@@ -13,46 +13,46 @@ export interface Achievement {
   requirement: {
     type: 'lessons_completed' | 'quizzes_passed' | 'notes_written' | 'streak_days' | 'path_completed' | 'perfect_quiz' | 'first_action' | 'total_time';
     value: number;
-    pathId?: string; // For path-specific achievements
+    pathId?: string; // path-specific achievements
   };
 }
 
-// All available achievements
+// all available achievements
 export const achievements: Achievement[] = [
-  // Learning Achievements
+  // learning achievements
   { id: 'first-steps', name: 'First Steps', description: 'Complete your first lesson', icon: '★', category: 'learning', requirement: { type: 'lessons_completed', value: 1 } },
   { id: 'getting-warmed-up', name: 'Getting Warmed Up', description: 'Complete 5 lessons', icon: '◆', category: 'learning', requirement: { type: 'lessons_completed', value: 5 } },
   { id: 'dedicated-learner', name: 'Dedicated Learner', description: 'Complete 10 lessons', icon: '◈', category: 'learning', requirement: { type: 'lessons_completed', value: 10 } },
   { id: 'lesson-master', name: 'Lesson Master', description: 'Complete 25 lessons', icon: '▲', category: 'learning', requirement: { type: 'lessons_completed', value: 25 } },
   { id: 'embedded-expert', name: 'Embedded Expert', description: 'Complete all 32 lessons', icon: '◉', category: 'mastery', requirement: { type: 'lessons_completed', value: 32 } },
   
-  // Path Completion Achievements
+  // path completion achievements
   { id: 'getting-started-complete', name: 'Journey Begins', description: 'Complete the Getting Started path', icon: '★', category: 'mastery', requirement: { type: 'path_completed', value: 1, pathId: 'getting-started' } },
   { id: 'ifmagic-complete', name: 'IF MAGIC Master', description: 'Complete the IF MAGIC path', icon: '◆', category: 'mastery', requirement: { type: 'path_completed', value: 1, pathId: 'ifmagic' } },
   
-  // Quiz Achievements
+  // quiz achievements
   { id: 'quiz-rookie', name: 'Quiz Rookie', description: 'Pass your first quiz', icon: '▣', category: 'learning', requirement: { type: 'quizzes_passed', value: 1 } },
   { id: 'quiz-pro', name: 'Quiz Pro', description: 'Pass 10 quizzes', icon: '▣', category: 'learning', requirement: { type: 'quizzes_passed', value: 10 } },
   { id: 'perfect-score', name: 'Perfect Score', description: 'Get 100% on a quiz', icon: '★', category: 'mastery', requirement: { type: 'perfect_quiz', value: 1 } },
   { id: 'flawless', name: 'Flawless', description: 'Get 5 perfect quiz scores', icon: '◉', category: 'mastery', requirement: { type: 'perfect_quiz', value: 5 } },
   
-  // Engagement Achievements
+  // engagement achievements
   { id: 'note-taker', name: 'Note Taker', description: 'Write notes in 5 lessons', icon: '◈', category: 'engagement', requirement: { type: 'notes_written', value: 5 } },
   { id: 'diligent-note-taker', name: 'Diligent Note Taker', description: 'Write notes in 15 lessons', icon: '◈', category: 'engagement', requirement: { type: 'notes_written', value: 15 } },
   { id: 'on-fire', name: 'On Fire!', description: 'Maintain a 7-day learning streak', icon: '▲', category: 'engagement', requirement: { type: 'streak_days', value: 7 } },
   { id: 'unstoppable', name: 'Unstoppable', description: 'Maintain a 30-day learning streak', icon: '◉', category: 'engagement', requirement: { type: 'streak_days', value: 30 } },
   
-  // Special Achievements
+  // special achievements
   { id: 'early-adopter', name: 'Early Adopter', description: 'Join during CruzHacks 2026', icon: '★', category: 'special', requirement: { type: 'first_action', value: 1 } },
   { id: 'hardware-hero', name: 'Hardware Hero', description: 'Connect IF MAGIC hardware for the first time', icon: '◆', category: 'special', requirement: { type: 'first_action', value: 1 } },
 ];
 
-// Get all achievements
+// get all achievements
 app.get('/', async (c) => {
   return c.json({ achievements });
 });
 
-// Get user's earned achievements
+// get user's earned achievements
 app.get('/user/:userId', async (c) => {
   try {
     const userId = c.req.param('userId');
@@ -64,7 +64,7 @@ app.get('/user/:userId', async (c) => {
     
     if (error) throw error;
     
-    // Map earned achievement IDs to full achievement data
+    // map earned achievement IDs to full achievement data
     const earnedIds = new Set(data?.map(a => a.achievement_id) || []);
     
     const userAchievements = achievements.map(achievement => ({
@@ -79,39 +79,39 @@ app.get('/user/:userId', async (c) => {
   }
 });
 
-// Get user's progress toward achievements
+// get user's progress toward achievements
 app.get('/progress/:userId', async (c) => {
   try {
     const userId = c.req.param('userId');
     
-    // Get lessons completed count
+    // get lessons completed count
     const { count: lessonsCount } = await supabase
       .from('user_progress')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
       .eq('completed', true);
     
-    // Get quizzes passed count
+    // get quizzes passed count
     const { count: quizzesCount } = await supabase
       .from('quiz_results')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
       .eq('passed', true);
     
-    // Get perfect quizzes count
+    // get perfect quizzes count
     const { count: perfectCount } = await supabase
       .from('quiz_results')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
       .eq('score', 100);
     
-    // Get notes count
+    // get notes count
     const { count: notesCount } = await supabase
       .from('notes')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId);
     
-    // Get user streak
+    // get user streak
     const { data: userData } = await supabase
       .from('users')
       .select('learning_streak')
@@ -132,19 +132,19 @@ app.get('/progress/:userId', async (c) => {
   }
 });
 
-// Award achievement to user
+// award achievement to user
 app.post('/award', async (c) => {
   try {
     const body = await c.req.json();
     const { user_id, achievement_id } = body;
     
-    // Check if achievement exists
+    // check if achievement exists
     const achievement = achievements.find(a => a.id === achievement_id);
     if (!achievement) {
       return c.json({ error: 'Achievement not found' }, 404);
     }
     
-    // Check if already earned
+    // check if already earned
     const { data: existing } = await supabase
       .from('user_achievements')
       .select('*')
@@ -156,7 +156,7 @@ app.post('/award', async (c) => {
       return c.json({ message: 'Achievement already earned', achievement: existing });
     }
     
-    // Award the achievement
+    // award the achievement
     const { data, error } = await supabase
       .from('user_achievements')
       .insert({
@@ -179,13 +179,13 @@ app.post('/award', async (c) => {
   }
 });
 
-// Check and award achievements based on user progress
+// check and award achievements based on user progress
 app.post('/check/:userId', async (c) => {
   try {
     const userId = c.req.param('userId');
     const newlyEarned: Achievement[] = [];
     
-    // Get user's current progress directly from database
+    // get user's current progress directly from database
     const { count: lessonsCount } = await supabase
       .from('user_progress')
       .select('*', { count: 'exact', head: true })
@@ -223,7 +223,7 @@ app.post('/check/:userId', async (c) => {
       streak_days: userData?.learning_streak || 0
     };
     
-    // Get user's current achievements
+    // get user's current achievements
     const { data: earnedAchievements } = await supabase
       .from('user_achievements')
       .select('achievement_id')
@@ -254,15 +254,15 @@ app.post('/check/:userId', async (c) => {
           earned = progress.streak_days >= achievement.requirement.value;
           break;
         case 'path_completed':
-          // Path completion handled by frontend
+          // path completion handled by frontend
           break;
         case 'first_action':
-          // Special achievements handled separately
+          // special achievements handled separately
           break;
       }
       
       if (earned) {
-        // Award the achievement
+        // award the achievement
         await supabase
           .from('user_achievements')
           .insert({

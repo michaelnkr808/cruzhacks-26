@@ -3,7 +3,7 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.SUPABASE_URL || '';
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
-// Create supabase client lazily to avoid build-time errors
+// create supabase client lazily to avoid build-time errors
 let _supabase: SupabaseClient | null = null;
 
 export const getSupabase = (): SupabaseClient => {
@@ -21,7 +21,7 @@ export const getSupabase = (): SupabaseClient => {
   return _supabase;
 };
 
-// For backwards compatibility - creates client on first access
+// backwards compatibility - creates client on first access
 export const supabase = new Proxy({} as SupabaseClient, {
   get(_, prop) {
     return (getSupabase() as any)[prop];
