@@ -1,20 +1,29 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.SUPABASE_URL || '';
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
-console.log('Loading Supabase...');
-console.log('URL:', supabaseUrl);
-console.log('Service Role Key exists:', supabaseServiceRoleKey.length > 0);
+// Create supabase client lazily to avoid build-time errors
+let _supabase: SupabaseClient | null = null;
 
-if (!supabaseUrl || !supabaseServiceRoleKey) {
-  throw new Error(`Missing Supabase env vars. URL: ${!!supabaseUrl}, Service Role Key: ${!!supabaseServiceRoleKey}`);
-}
+export const getSupabase = (): SupabaseClient => {
+  if (!_supabase) {
+    if (!supabaseUrl || !supabaseServiceRoleKey) {
+      throw new Error('Missing Supabase environment variables');
+    }
+    _supabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    });
+  }
+  return _supabase;
+};
 
-// Use service role key for admin operations (creating users in Auth)
-export const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false
+// For backwards compatibility - creates client on first access
+export const supabase = new Proxy({} as SupabaseClient, {
+  get(_, prop) {
+    return (getSupabase() as any)[prop];
   }
 });
