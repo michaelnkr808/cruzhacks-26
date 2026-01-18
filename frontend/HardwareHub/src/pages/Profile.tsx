@@ -14,8 +14,6 @@ interface Achievement {
   category: 'learning' | 'engagement' | 'mastery' | 'special';
   earned: boolean;
   earnedAt?: string;
-  nftMinted?: boolean;
-  nftAddress?: string;
   requirement: {
     type: string;
     value: number;
@@ -48,9 +46,6 @@ function Profile() {
   const [userData, setUserData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [achievements, setAchievements] = useState<Achievement[]>(localAchievements);
-  const [walletAddress, setWalletAddress] = useState<string | null>(null);
-  const [connectingWallet, setConnectingWallet] = useState(false);
-  const [mintingNft, setMintingNft] = useState<string | null>(null);
   const [completedCount, setCompletedCount] = useState(0);
   const [quizzesPassed, setQuizzesPassed] = useState(0);
   const [perfectQuizzes, setPerfectQuizzes] = useState(0);
@@ -127,7 +122,7 @@ function Profile() {
       const pathsCompleted = (isGettingStartedComplete ? 1 : 0) + (isIfmagicComplete ? 1 : 0);
       
       // Check achievements based on local progress
-      checkLocalAchievements(completed.length, passedQuizzes, noteCount, perfectScores, pathsCompleted);
+      checkLocalAchievements(completed.length, passedQuizzes, noteCount, perfectScores, pathsCompleted, parsedUser.id);
       
       // Try to fetch from API as well
       fetchAchievements(parsedUser.id);
@@ -138,14 +133,17 @@ function Profile() {
     }
   }, [navigate]);
 
-  // Check achievements based on local data
-  const checkLocalAchievements = (
+  // Check achievements based on local data and persist to backend
+  const checkLocalAchievements = async (
     lessons: number, 
     quizzes: number, 
     notes: number, 
     perfectScores: number, 
-    pathsCompleted: number
+    pathsCompleted: number,
+    userId: string
   ) => {
+    const newlyEarned: string[] = [];
+    
     setAchievements(prev => prev.map(achievement => {
       let earned = achievement.earned; // Keep existing earned state by default
       
@@ -181,6 +179,11 @@ function Profile() {
           break;
       }
       
+      // Track newly earned achievements
+      if (earned && !achievement.earned) {
+        newlyEarned.push(achievement.id);
+      }
+      
       // If newly earned, save timestamp
       const earnedAt = earned && !achievement.earned 
         ? new Date().toISOString() 
@@ -188,6 +191,28 @@ function Profile() {
       
       return { ...achievement, earned, earnedAt };
     }));
+    
+    // Persist newly earned achievements to backend
+    if (newlyEarned.length > 0 && userId) {
+      const token = localStorage.getItem('authToken');
+      for (const achievementId of newlyEarned) {
+        try {
+          await fetch(`${API_URL}/api/achievements/award`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              user_id: userId,
+              achievement_id: achievementId,
+            }),
+          });
+        } catch (error) {
+          console.error(`Failed to persist achievement ${achievementId}:`, error);
+        }
+      }
+    }
   };
 
   const fetchAchievements = async (userId: string) => {
@@ -325,89 +350,6 @@ function Profile() {
     setShowResetModal(false);
   };
 
-  // Connect Solana wallet using Phantom
-  const connectWallet = async () => {
-    setConnectingWallet(true);
-    try {
-      // Check if Phantom is installed
-      const phantom = (window as any).solana;
-      
-      if (!phantom?.isPhantom) {
-        window.open('https://phantom.app/', '_blank');
-        alert('Please install Phantom wallet to mint NFT achievements!');
-        return;
-      }
-      
-      // Connect to Phantom
-      const response = await phantom.connect();
-      const address = response.publicKey.toString();
-      setWalletAddress(address);
-      
-      // Save to backend
-      const token = localStorage.getItem('authToken');
-      await fetch(`${API_URL}/api/achievements/wallet`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          user_id: userData.id,
-          wallet_address: address,
-        }),
-      });
-    } catch (error: any) {
-      console.error('Failed to connect wallet:', error);
-      alert('Failed to connect wallet. Please try again.');
-    } finally {
-      setConnectingWallet(false);
-    }
-  };
-
-  // Mint NFT for earned achievement
-  const mintNft = async (achievementId: string) => {
-    if (!walletAddress) {
-      alert('Please connect your Solana wallet first!');
-      return;
-    }
-    
-    setMintingNft(achievementId);
-    try {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch(`${API_URL}/api/achievements/mint-nft`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          user_id: userData.id,
-          achievement_id: achievementId,
-          wallet_address: walletAddress,
-        }),
-      });
-      
-      const data = await response.json();
-      
-      if (response.ok) {
-        alert(`🎉 NFT minted successfully!\n\nNFT Address: ${data.nft.address}`);
-        // Update achievement state
-        setAchievements(prev => prev.map(a => 
-          a.id === achievementId 
-            ? { ...a, nftMinted: true, nftAddress: data.nft.address }
-            : a
-        ));
-      } else {
-        throw new Error(data.error);
-      }
-    } catch (error: any) {
-      console.error('Failed to mint NFT:', error);
-      alert(`Failed to mint NFT: ${error.message}`);
-    } finally {
-      setMintingNft(null);
-    }
-  };
-
   // Format member date from either created_at or joinDate
   const getMemberDate = () => {
     const dateStr = userData?.created_at || userData?.joinDate;
@@ -488,43 +430,6 @@ function Profile() {
           </div>
         </div>
 
-        {/* Solana Wallet Section */}
-        <div className="section wallet-section">
-          <h2 className="section-title">◆ Solana Wallet</h2>
-          <div className="wallet-content">
-            {walletAddress ? (
-              <div className="wallet-connected">
-                <div className="wallet-icon">◉</div>
-                <div className="wallet-info">
-                  <span className="wallet-label">Connected</span>
-                  <span className="wallet-address">
-                    {walletAddress.slice(0, 4)}...{walletAddress.slice(-4)}
-                  </span>
-                </div>
-                <button 
-                  className="disconnect-wallet-btn"
-                  onClick={() => setWalletAddress(null)}
-                >
-                  Disconnect
-                </button>
-              </div>
-            ) : (
-              <div className="wallet-not-connected">
-                <p className="wallet-description">
-                  Connect your Solana wallet to mint your achievements as NFTs on the blockchain!
-                </p>
-                <button 
-                  className="connect-wallet-btn"
-                  onClick={connectWallet}
-                  disabled={connectingWallet}
-                >
-                  {connectingWallet ? '◷ Connecting...' : '◆ Connect Phantom Wallet'}
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-
         {/* Achievements Section */}
         <div className="section">
           <div className="section-header">
@@ -546,36 +451,10 @@ function Profile() {
                   {achievement.earned && (
                     <div className="earned-badge">✓</div>
                   )}
-                  {achievement.nftMinted && (
-                    <div className="nft-badge">NFT</div>
-                  )}
                 </div>
                 <div className="achievement-name">{achievement.name}</div>
                 <div className="achievement-description">{achievement.description}</div>
                 <div className="achievement-category">{achievement.category}</div>
-                
-                {/* Mint NFT button for earned achievements */}
-                {achievement.earned && !achievement.nftMinted && walletAddress && (
-                  <button 
-                    className="mint-nft-btn"
-                    onClick={() => mintNft(achievement.id)}
-                    disabled={mintingNft === achievement.id}
-                  >
-                    {mintingNft === achievement.id ? '◷ Minting...' : '◆ Mint NFT'}
-                  </button>
-                )}
-                
-                {/* Show NFT link if minted */}
-                {achievement.nftMinted && achievement.nftAddress && (
-                  <a 
-                    href={`https://explorer.solana.com/address/${achievement.nftAddress}?cluster=devnet`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="view-nft-link"
-                  >
-                    View on Solana ↗
-                  </a>
-                )}
               </div>
             ))}
           </div>
