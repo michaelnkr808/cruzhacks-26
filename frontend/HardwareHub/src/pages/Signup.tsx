@@ -24,7 +24,6 @@ function Signup() {
   const navigate = useNavigate();
   
   // Form state - stores all form field values
-  // This is a common pattern: one state object for all form data
   const [formData, setFormData] = useState<FormData>({
     name: '',
     email: '',

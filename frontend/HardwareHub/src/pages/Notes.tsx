@@ -3,19 +3,6 @@ import { lessons } from '../data/lessonData';
 import { useState, useEffect } from 'react';
 import './Notes.css';
 
-/**
- * Notes Review Page - View all your saved notes
- * 
- * This page lists all lessons and shows which ones have notes.
- * Click on a lesson to expand and view its notes.
- * 
- * KEY CONCEPTS:
- * - localStorage: Reading saved notes from browser storage
- * - Array.map(): Transform lesson data into note cards
- * - Conditional rendering: Show different UI for notes vs no notes
- * - Accordion pattern: Expand/collapse to view notes
- */
-
 interface LessonNote {
   lessonId: number;
   lessonSlug: string;

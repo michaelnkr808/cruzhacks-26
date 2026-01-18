@@ -1,4 +1,4 @@
-/* Hacker-Themed Signup Page */
+/* Signup Page */
 
 .signup-page {
   min-height: 100vh;
@@ -153,7 +153,7 @@
   letter-spacing: 1px;
 }
 
-/* Input Fields - Hacker Style */
+/* Input Fields */
 .form-group input {
   padding: 1rem;
   border: 2px solid rgba(0, 255, 135, 0.3);
@@ -179,7 +179,7 @@
   font-family: 'Courier New', monospace;
 }
 
-/* Button Groups - NEW! */
+/* Button Groups */
 .button-group {
   display: flex;
   flex-wrap: wrap;
@@ -247,7 +247,7 @@
   text-align: left;
 }
 
-/* Error Message - Hacker Style */
+/* Error Message */
 .error-message {
   background: rgba(239, 68, 68, 0.1);
   color: #ff6b6b;
@@ -266,7 +266,7 @@
   50% { border-color: rgba(239, 68, 68, 0.8); }
 }
 
-/* Submit Button - Glowing Hacker Style */
+/* Submit Button */
 .submit-button {
   padding: 1.25rem 2rem;
   background: linear-gradient(135deg, #00ff87 0%, #00d9ff 100%);

@@ -5,18 +5,6 @@ import './Learning.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
-/**
- * Learning Track Page - The roadmap/track view for a specific hardware platform
- * 
- * KEY LEARNING CONCEPTS:
- * 
- * 1. Data-Driven UI: Lesson content separated from presentation
- * 2. ACCESS CONTROL: Different users see different content
- * 3. User State: Reading from localStorage to determine permissions
- * 4. Progressive Disclosure: Show what's available vs locked
- * 5. Path-Specific Content: Shows lessons for the selected hardware platform
- */
-
 function Learning() {
   const navigate = useNavigate();
   const { pathId } = useParams<{ pathId: string }>();

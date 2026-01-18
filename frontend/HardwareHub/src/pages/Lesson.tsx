@@ -5,22 +5,6 @@ import Quiz from '../components/Quiz/Quiz';
 import Toast from '../components/Toast/Toast';
 import './Lesson.css';
 
-/**
- * Lesson Page - Individual lesson view WITH PERSISTENT NOTES
- * 
- * Key Concepts:
- * - useParams(): Gets the lesson slug from the URL (/lesson/button-module → slug = "button-module")
- * - useState(): Manages the notes that users type
- * - useEffect(): Loads saved notes from localStorage on mount
- * - localStorage: Persists notes across browser sessions
- * - Data fetching: We use getLessonBySlug() to get the right lesson
- * - Two-column layout: Content on left, notes on right
- * 
- * Real-world pattern:
- * In production, notes would be saved to a backend API and database.
- * The pattern is the same - load on mount, save on button click!
- */
-
 function Lesson() {
   // Get the lesson slug from the URL
   const { slug } = useParams<{ slug: string }>();

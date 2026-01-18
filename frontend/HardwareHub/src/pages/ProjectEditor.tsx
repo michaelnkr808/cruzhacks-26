@@ -3,23 +3,13 @@ import { useState, useRef, useEffect } from 'react';
 import './ProjectEditor.css';
 import { MODULE_ICONS } from '../components/ModuleIcons';
 
-/**
- * Enhanced Project Editor with Module Connections
- * 
- * KEY CONCEPTS:
- * 1. Module Types: Input vs Output
- * 2. Connection System: Inputs can connect to Outputs
- * 3. Visual Feedback: Red = unconnected, Green = connected
- * 4. SVG Lines: Drawing connections between modules
- */
-
 interface Module {
   id: string;
   type: string;
   name: string;
   x: number;
   y: number;
-  moduleType: 'input' | 'output'; // NEW: Classify modules
+  moduleType: 'input' | 'output'; 
 }
 
 interface Connection {
